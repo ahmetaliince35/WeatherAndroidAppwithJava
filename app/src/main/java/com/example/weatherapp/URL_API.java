@@ -1,0 +1,8 @@
+package com.example.weatherapp;
+
+public  class URL_API {
+    private URL_API(){}
+    public static final String API_KEY="YOUR_API_KEY";
+    public static final String CurrentURL="https://api.openweathermap.org/data/2.5/weather?q=";
+    public static final String ForecastURL="https://api.openweathermap.org/data/2.5/forecast?q=";
+}

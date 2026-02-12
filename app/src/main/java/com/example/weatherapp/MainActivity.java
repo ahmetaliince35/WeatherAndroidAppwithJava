@@ -1,0 +1,266 @@
+package com.example.weatherapp;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.Locale;
+
+public class MainActivity extends AppCompatActivity {
+
+    private EditText editTextCity;
+    private Button buttonSearch;
+    private Button buttonForecast;
+    private Button buttonHourlyForecast;
+    private TextView textViewCityName;
+    private TextView textViewTemperature;
+    private TextView textViewDescription;
+    private TextView textViewHumidity;
+    private TextView textViewWindSpeed;
+    private TextView textViewFeelsLike;
+    private TextView textViewPressure;
+    private ImageView imageViewWeatherIcon;
+
+    private ScrollView root;
+    private int currentbackround=R.drawable.background;
+
+    private String currentCity = "";
+
+    // OpenWeatherMap API Key - Kendi API key'inizi buraya ekleyin
+    private static final String API_KEY = URL_API.API_KEY;
+    private static final String BASE_URL = URL_API.CurrentURL;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // View'ları bağlama
+        editTextCity = findViewById(R.id.editTextCity);
+        buttonSearch = findViewById(R.id.buttonSearch);
+        buttonForecast = findViewById(R.id.buttonForecast);
+        buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
+        textViewCityName = findViewById(R.id.textViewCityName);
+        textViewTemperature = findViewById(R.id.textViewTemperature);
+        textViewDescription = findViewById(R.id.textViewDescription);
+        textViewHumidity = findViewById(R.id.textViewHumidity);
+        textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
+        textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
+        textViewPressure = findViewById(R.id.textViewPressure);
+        imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
+        root = findViewById(R.id.rootScroll);
+        // Arama butonu
+        buttonSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String city = editTextCity.getText().toString().trim();
+                if (!city.isEmpty()) {
+                    currentCity = city;
+                    getWeatherData(city);
+                } else {
+                    Toast.makeText(MainActivity.this, "Lütfen şehir adı girin", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // 5 Günlük Tahmin butonu
+        buttonForecast.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!currentCity.isEmpty()) {
+                    Intent intent = new Intent(MainActivity.this, Forecastactivity.class);
+                    intent.putExtra("CITY_NAME", currentCity);
+                    intent.putExtra("background-res",currentbackround);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        buttonHourlyForecast.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!currentCity.isEmpty()) {
+                    Intent intent = new Intent(MainActivity.this, Hourlyforecastactivity.class);
+                    intent.putExtra("CITY_NAME", currentCity);
+                    intent.putExtra("background-res",currentbackround);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private void getWeatherData(String city) {
+        String url = BASE_URL + city + "&appid=" + API_KEY + "&units=metric&lang=tr";
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
+                Request.Method.GET,
+                url,
+                null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            // Şehir adı
+                            String cityName = response.getString("name");
+
+                            // Ana hava durumu bilgileri
+                            JSONObject main = response.getJSONObject("main");
+                            double temperature = main.getDouble("temp");
+                            int humidity = main.getInt("humidity");
+                            double feelsLike = main.getDouble("feels_like");
+                            int pressure = main.getInt("pressure");
+
+                            // Hava durumu açıklaması
+                            JSONObject weather = response.getJSONArray("weather").getJSONObject(0);
+                            String description = weather.getString("description");
+
+                            String icon = weather.getString("icon");
+                            updateBackgroundByWeather(icon);
+
+
+
+                            // Rüzgar hızı
+                            JSONObject wind = response.getJSONObject("wind");
+                            double windSpeed = wind.getDouble("speed");
+
+                            // UI'ı güncelleme
+                            updateUI(cityName, temperature, description, humidity, windSpeed*3.6,
+                                    feelsLike, pressure, icon);
+
+                            // 5 Günlük Tahmin butonunu aktif et
+                            buttonForecast.setEnabled(true);
+                            buttonHourlyForecast.setEnabled(true);
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MainActivity.this, "Veri işlenirken hata oluştu", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MainActivity.this, "Şehir bulunamadı", Toast.LENGTH_SHORT).show();
+                        buttonForecast.setEnabled(false);
+                    }
+                }
+        );
+
+        queue.add(jsonObjectRequest);
+    }
+
+    private void updateUI(String cityName, double temperature, String description,
+                          int humidity, double windSpeed, double feelsLike, int pressure, String icon) {
+        textViewCityName.setText(cityName);
+        textViewTemperature.setText(String.format("%.1f°C", temperature));
+        textViewDescription.setText(description.substring(0, 1).toUpperCase() + description.substring(1));
+        textViewHumidity.setText("Nem: " + humidity + "%");
+        textViewWindSpeed.setText((String.format(Locale.getDefault(), "Rüzgar hızı: %.0f km/s", windSpeed)));
+        textViewFeelsLike.setText("Hissedilen: " + String.format("%.1f°C", feelsLike));
+        textViewPressure.setText("Basınç: " + pressure + " hPa");
+
+        // Hava durumu ikonunu ayarlama
+        setWeatherIcon(icon);
+    }
+
+    private void setWeatherIcon(String icon) {
+        // İkon koduna göre drawable kaynak ayarlama
+        int iconResource;
+        switch (icon) {
+            case "01d":
+                iconResource = R.drawable.icon_sunny;
+                break;
+            case "01n":
+                iconResource=R.drawable.icon_moon;
+            case "02d":
+            case "03d":
+                iconResource = R.drawable.icon_partlycloudy;
+                break;
+            case "02n":
+            case "03n":
+                iconResource=R.drawable.icon_partlycloudy_night;
+            case "04d":
+            case "04n":
+                iconResource = R.drawable.icon_cloudy;
+                break;
+            case "09d":
+            case "09n":
+            case "10d":
+            case "10n":
+                iconResource = R.drawable.icon_rainy;
+                break;
+            case "11d":
+            case "11n":
+                iconResource = R.drawable.icon_thunderstorm;
+                break;
+            case "13d":
+            case "13n":
+                iconResource = R.drawable.icon_snowy;
+                break;
+            default:
+                iconResource = R.drawable.icon_sunny;
+                break;
+        }
+        imageViewWeatherIcon.setImageResource(iconResource);
+    }
+    private void updateBackgroundByWeather(String iconCode) {
+        int backgroundRes;
+
+        if (iconCode.startsWith("01")) {
+            backgroundRes = iconCode.endsWith("d")
+                    ? R.drawable.sun
+                    : R.drawable.moon;
+
+        }
+        else if (iconCode.startsWith("02") || iconCode.startsWith("03"))
+        {
+            backgroundRes=R.drawable.partlycloud;
+        }
+        else if (iconCode.startsWith("04"))
+        {
+            backgroundRes = R.drawable.very_cloud;
+
+        }
+        else if (iconCode.startsWith("09") || iconCode.startsWith("10"))
+        {
+            backgroundRes = R.drawable.rain;
+
+        }
+        else if(iconCode.startsWith("11"))
+        {
+                backgroundRes= R.drawable.thunder;
+
+        }
+        else if (iconCode.startsWith("13"))
+        {
+            backgroundRes = R.drawable.snow;
+
+        }
+        else
+        {
+            backgroundRes = R.drawable.sun;
+        }
+            currentbackround=backgroundRes;
+            root.setBackgroundResource(currentbackround);
+    }
+}

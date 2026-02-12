@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">weatherapp</string>
+    <string name="enter_city">Şehir adı girin</string>
+    <string name="search">Ara</string>
+    <string name="select_city">Şehir Seçin</string>
+    <string name="temperature_default">--°C</string>
+    <string name="weather_info">Hava durumu bilgisi</string>
+    <string name="humidity">Nem: --%</string>
+    <string name="wind_speed">Rüzgar: -- m/s</string>
+    <string name="error_empty_city">Lütfen şehir adı girin</string>
+    <string name="error_city_not_found">Şehir bulunamadı</string>
+    <string name="error_data_processing">Veri işlenirken hata oluştu</string>
+</resources>

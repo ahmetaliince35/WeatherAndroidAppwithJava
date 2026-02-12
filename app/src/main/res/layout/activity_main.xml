@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background"
+    android:id="@+id/rootScroll">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Başlık -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Anlık Hava Durumu"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- Şehir Arama Kartı -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="15dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#33ffffff">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="10dp">
+
+                <EditText
+                    android:id="@+id/editTextCity"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Şehir adı girin"
+                    android:inputType="text"
+                    android:padding="12dp"
+                    android:textSize="16sp"
+                    android:background="@android:color/transparent"/>
+
+                <Button
+                    android:id="@+id/buttonSearch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ara"
+                    android:textColor="#1e3a5f"
+                    android:backgroundTint="#55ffffff"
+                    android:padding="12dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Hava Durumu Bilgi Kartı -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            android:layout_marginBottom="15dp"
+            app:cardBackgroundColor="#33FFFFFF">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="25dp"
+                android:gravity="center">
+
+
+                <!-- Şehir Adı -->
+                <TextView
+                    android:id="@+id/textViewCityName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Şehir Seçin"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="15dp"/>
+
+                <!-- Hava İkonu -->
+                <ImageView
+                    android:id="@+id/imageViewWeatherIcon"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:src="@drawable/icon_sunny"
+                    android:layout_marginBottom="15dp"/>
+
+                <!-- Sıcaklık -->
+                <TextView
+                    android:id="@+id/textViewTemperature"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--°C"
+                    android:textSize="48sp"
+                    android:textStyle="bold"
+                    android:textColor="#313322"
+                    android:layout_marginBottom="10dp"/>
+
+                <!-- Hava Durumu Açıklaması -->
+                <TextView
+                    android:id="@+id/textViewDescription"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hava durumu bilgisi"
+                    android:textSize="20sp"
+                    android:textColor="#0c140a"
+                    android:layout_marginBottom="20dp"/>
+
+                <!-- Detay Bilgileri Grid -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- İlk Satır -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginBottom="15dp">
+
+                        <!-- Nem Bilgisi -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="35dp"
+                                android:layout_height="35dp"
+                                android:src="@drawable/icon_humidity"
+                                android:layout_marginBottom="8dp"/>
+
+                            <TextView
+                                android:id="@+id/textViewHumidity"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Nem: --%"
+                                android:textSize="13sp"
+                                android:textColor="#666666"/>
+                        </LinearLayout>
+
+                        <!-- Rüzgar Hızı -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="35dp"
+                                android:layout_height="35dp"
+                                android:src="@drawable/icon_windy"
+                                android:layout_marginBottom="8dp"/>
+
+                            <TextView
+                                android:id="@+id/textViewWindSpeed"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Rüzgar: -- m/s"
+                                android:textSize="13sp"
+                                android:textColor="#666666"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- İkinci Satır -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center">
+
+                        <!-- Hissedilen Sıcaklık -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🌡️"
+                                android:textSize="30sp"
+                                android:layout_marginBottom="8dp"/>
+
+                            <TextView
+                                android:id="@+id/textViewFeelsLike"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Hissedilen: --°C"
+                                android:textSize="13sp"
+                                android:textColor="#666666"/>
+                        </LinearLayout>
+
+                        <!-- Basınç -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="📊"
+                                android:textSize="30sp"
+                                android:layout_marginBottom="8dp"/>
+
+                            <TextView
+                                android:id="@+id/textViewPressure"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Basınç: -- hPa"
+                                android:textSize="13sp"
+                                android:textColor="#666666"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 5 Günlük Tahmin Butonu -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center">
+            <Button
+                android:id="@+id/buttonForecast"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="5 Günlük Tahmin"
+                android:textColor="#1e3a5f"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:backgroundTint="#55ffffff"
+                android:padding="15dp"
+                android:enabled="false"
+                android:layout_marginEnd="8dp"
+                app:cornerRadius="10dp"/>
+
+            <Button
+                android:id="@+id/buttonHourlyForecast"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="⏰ 72 Saatlik Tahmin"
+                android:textColor="#1e3a5f"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:backgroundTint="#44FFFFFF"
+                android:padding="15dp"
+                android:enabled="false"
+                android:layout_marginStart="8dp"
+                app:cornerRadius="10dp"/>
+    </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

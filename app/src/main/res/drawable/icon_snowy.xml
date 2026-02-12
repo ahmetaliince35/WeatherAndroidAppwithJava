@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Bulut -->
+    <path
+        android:fillColor="#B0C4DE"
+        android:pathData="M19.35,10.04C18.67,6.59 15.64,4 12,4
+                          C9.11,4 6.6,5.64 5.35,8.04
+                          C2.34,8.36 0,10.91 0,14
+                          C0,17.31 2.69,20 6,20
+                          H19C21.76,20 24,17.76 24,15
+                          C24,12.36 21.95,10.22 19.35,10.04Z"/>
+
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.8"
+        android:strokeLineCap="round"
+        android:pathData="M7,17 L7,20
+                          M5.8,18.5 L8.2,18.5
+                          M6.1,17.6 L7.9,19.4
+                          M7.9,17.6 L6.1,19.4"/>
+
+    <!-- Kar Tanesi 2 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.8"
+        android:strokeLineCap="round"
+        android:pathData="M12,17 L12,20
+                          M10.8,18.5 L13.2,18.5
+                          M11.1,17.6 L12.9,19.4
+                          M12.9,17.6 L11.1,19.4"/>
+
+    <!-- Kar Tanesi 3 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.8"
+        android:strokeLineCap="round"
+        android:pathData="M17,17 L17,20
+                          M15.8,18.5 L18.2,18.5
+                          M16.1,17.6 L17.9,19.4
+                          M17.9,17.6 L16.1,19.4"/>
+
+</vector>
