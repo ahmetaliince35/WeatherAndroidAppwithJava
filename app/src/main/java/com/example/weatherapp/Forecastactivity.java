@@ -279,8 +279,8 @@ public class Forecastactivity extends AppCompatActivity {
         double noonTemp = 0;
 
         // Günlük min/max (8 veriden)
-        double minTemp = Double.MAX_VALUE;
-        double maxTemp = Double.MIN_VALUE;
+        double minTemp = Double.POSITIVE_INFINITY;
+        double maxTemp = Double.NEGATIVE_INFINITY;
 
         // Ortalama için toplam değerler
         int totalHumidity = 0;

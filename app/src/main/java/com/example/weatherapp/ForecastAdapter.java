@@ -39,12 +39,20 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
                 item.getTempMin(), item.getTempMax()));
 
         String description = item.getDescription();
+        String icon=item.getIcon();
         holder.textViewDescription.setText(description.substring(0, 1).toUpperCase() +
                 description.substring(1));
 
         holder.textViewHumidity.setText(String.format(Locale.getDefault(), "Nem:%d%%",item.getHumidity()));
         holder.textViewWind.setText(String.format(Locale.getDefault(), "Rüzgar hızı: %.0f km/s", item.getWindSpeed()));
-        holder.raindaily.setText(String.format("🌧 Yağış: %.2f mm", item.getPreprainy()));
+        if(description.contains("kar") || item.getTemperature()<=0)
+        {
+            holder.raindaily.setText(String.format("🌧 Yağış: %.2f cm", item.getPreprainy()));
+        }
+        else
+        {
+            holder.raindaily.setText(String.format("🌧 Yağış: %.2f mm", item.getPreprainy()));
+        }
         // Yağış ihtimali
             holder.rainprobability.setVisibility(View.VISIBLE);
             holder.rainprobability.setText(String.format("☔ İhtimal: %.0f%%", item.getProbability()));
@@ -63,7 +71,7 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
             }
             holder.rainprobability.setTextColor(ContextCompat.getColor(context,colorRes));
         // İkon ayarlama
-        setWeatherIcon(holder.imageViewIcon, item.getIcon());
+        setWeatherIcon(holder.imageViewIcon,icon,description );
     }
 
     @Override
@@ -71,7 +79,7 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
         return forecastList.size();
     }
 
-    private void setWeatherIcon(ImageView imageView, String icon) {
+    private void setWeatherIcon(ImageView imageView, String icon,String description) {
         int iconResource;
         switch (icon) {
             case "01d":
@@ -87,9 +95,24 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
             case "02n":
             case "03n":
                 iconResource=R.drawable.icon_partlycloudy_night;
+                break;
             case "04d":
+                if(description.contains("parçalı"))
+                {
+                    iconResource=R.drawable.icon_partlycloudy;
+                }
+                else {
+                    iconResource = R.drawable.icon_cloudy;
+                }
+                break;
             case "04n":
-                iconResource = R.drawable.icon_cloudy;
+                if(description.contains("parçalı"))
+                {
+                    iconResource=R.drawable.icon_partlycloudy_night;
+                }
+                else {
+                    iconResource = R.drawable.icon_cloudy;
+                }
                 break;
             case "09d":
             case "09n":
@@ -134,6 +157,7 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
             textViewWind = itemView.findViewById(R.id.textViewWind);
             imageViewIcon = itemView.findViewById(R.id.imageViewIcon);
             raindaily=itemView.findViewById(R.id.textViewRain);
+
             rainprobability=itemView.findViewById(R.id.textViewRainProbability);
         }
     }

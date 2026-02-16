@@ -19,8 +19,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class Hourlyforecastactivity extends AppCompatActivity {
 
@@ -118,7 +121,8 @@ public class Hourlyforecastactivity extends AppCompatActivity {
                 double rain = 0;
                 double rainprob = 0;
                 JSONObject hourData = list.getJSONObject(i);
-                String dateHour= hourData.getString("dt_txt");
+                long timestamp= hourData.getLong("dt");
+                String dateHour=formatDate(timestamp);
 
 
                 // Hava durumu bilgileri
@@ -145,6 +149,11 @@ public class Hourlyforecastactivity extends AppCompatActivity {
                     rain=rainobj.getDouble("3h");
 
 
+                }
+                if(hourData.has("snow"))
+                {
+                    JSONObject snowobj=hourData.getJSONObject(("snow"));
+                    rain=snowobj.getDouble("3h");
                 }
                 // ForecastItem oluştur ve listeye ekle
                 ForecastItem forecastItem = new ForecastItem(
@@ -174,9 +183,11 @@ public class Hourlyforecastactivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Geri buton desteği
-     */
+    private String formatDate(long timestamp) {
+        Date date = new Date(timestamp * 1000);
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH.mm - EE", new Locale("tr", "TR"));
+        return sdf.format(date);
+    }
     @Override
     public boolean onSupportNavigateUp() {
         finish();
