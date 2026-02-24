@@ -1,7 +1,11 @@
 package com.example.weatherapp;
 
+import android.Manifest;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -9,7 +13,15 @@ import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -19,9 +31,16 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.Permission;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+{
+
+    private static final String TAG = "MainActivity";
 
     private EditText editTextCity;
     private Button buttonSearch;
@@ -34,12 +53,19 @@ public class MainActivity extends AppCompatActivity {
     private TextView textViewWindSpeed;
     private TextView textViewFeelsLike;
     private TextView textViewPressure;
+    private TextView textViewLastUpdate;
+    private Button buttonCurrentLocation;
     private ImageView imageViewWeatherIcon;
 
     private ScrollView root;
     private int currentbackround=R.drawable.background;
 
     private String currentCity = "";
+    private LocationGetter locationGetter;
+    private PreferencesManager preferencesManager;
+
+
+    private static final int Location_Permission_Request=100;
 
     // OpenWeatherMap API Key - Kendi API key'inizi buraya ekleyin
     private static final String API_KEY = URL_API.API_KEY;
@@ -50,11 +76,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        locationGetter=new LocationGetter(this);
+        preferencesManager=new PreferencesManager(this);
+
+
+
         // View'ları bağlama
         editTextCity = findViewById(R.id.editTextCity);
         buttonSearch = findViewById(R.id.buttonSearch);
         buttonForecast = findViewById(R.id.buttonForecast);
         buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
+        buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
         textViewCityName = findViewById(R.id.textViewCityName);
         textViewTemperature = findViewById(R.id.textViewTemperature);
         textViewDescription = findViewById(R.id.textViewDescription);
@@ -62,8 +95,15 @@ public class MainActivity extends AppCompatActivity {
         textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
         textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
         textViewPressure = findViewById(R.id.textViewPressure);
+        textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
         imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
         root = findViewById(R.id.rootScroll);
+
+
+        setupAutoUpdate();
+
+        loadSavedLocation();
+
         // Arama butonu
         buttonSearch.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -77,7 +117,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
+        buttonCurrentLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getPermission();
+            }
+        });
         // 5 Günlük Tahmin butonu
         buttonForecast.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -106,8 +151,81 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+    private void loadSavedLocation()
+    {
 
-    private void getWeatherData(String city) {
+        String savedCity=preferencesManager.getSavedCityName();
+        if(savedCity!=null && !savedCity.isEmpty()) {
+
+            currentCity = savedCity;
+
+            getWeatherData(currentCity);
+        }
+    }
+
+    private void getPermission()
+    {
+
+        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED&&
+        ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},
+                    Location_Permission_Request);
+            return ;
+        }
+        else
+        {
+            getCurrentLocation();
+        }
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
+    {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == Location_Permission_Request) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                // İzin verildi, konumu al
+                getCurrentLocation();
+            } else {
+
+                Toast.makeText(this, "Konum izni reddedildi", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void getCurrentLocation()
+    {
+        Toast.makeText(this,"Konum Alınıyor",Toast.LENGTH_SHORT).show();
+        locationGetter.getCurrentLocation(new LocationGetter.LocationCallback() {
+            @Override
+            public void onLocationReceived(String cityName, double latitude, double longitude) {
+                currentCity=cityName;
+
+                String savedcity= preferencesManager.getSavedCityName();
+
+                showSaveLocationDialog(cityName,latitude,longitude);
+
+                getWeatherData(cityName);
+
+                Toast.makeText(MainActivity.this,"Konum: "+cityName,Toast.LENGTH_SHORT).show();
+            }
+            @Override
+            public void onLocationError(String error)
+            {
+
+                Toast.makeText(MainActivity.this,"Konum hatası",Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
+    private void getWeatherData(String city)
+    {
         String url = BASE_URL + city + "&appid=" + API_KEY + "&units=metric&lang=tr";
 
         RequestQueue queue = Volley.newRequestQueue(this);
@@ -151,8 +269,18 @@ public class MainActivity extends AppCompatActivity {
                             buttonForecast.setEnabled(true);
                             buttonHourlyForecast.setEnabled(true);
 
+
+                            JSONObject coord = response.getJSONObject("coord");
+                            final double lat = coord.getDouble("lat");
+                            final double lon = coord.getDouble("lon");
+                            final String finalCityName = cityName;
+
+                            // Konum kaydetme izni sor
+
+
+
+
                         } catch (JSONException e) {
-                            e.printStackTrace();
                             Toast.makeText(MainActivity.this, "Veri işlenirken hata oluştu", Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -169,6 +297,72 @@ public class MainActivity extends AppCompatActivity {
         queue.add(jsonObjectRequest);
     }
 
+    private void showSaveLocationDialog(final String cityName, final double latitude, final double longitude) {
+        new AlertDialog.Builder(this)
+                .setTitle("Konum Kaydet")
+                .setMessage(cityName + " konumunu varsayılan olarak kaydetmek ister misiniz?\n\n" +
+                        "Kaydederseniz:\n" +
+                        "• Uygulama açıldığında otomatik yüklenecek\n" +
+                        "• Günde 2 kere otomatik güncellenecek")
+                .setPositiveButton("Evet, Kaydet", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Konumu kaydet
+                        Log.d(TAG, "Kullanıcı konumu kaydetmeyi onayladı");
+                        preferencesManager.saveLocation(cityName, latitude, longitude);
+                        updateLastUpdateText();
+                        Toast.makeText(MainActivity.this,
+                                cityName + " varsayılan konum olarak kaydedildi",
+                                Toast.LENGTH_LONG).show();
+
+                    }
+                })
+                .setNegativeButton("Hayır", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Log.d(TAG, "Kullanıcı konumu kaydetmeyi reddetti");
+                        preferencesManager.clearAll();
+                        Toast.makeText(MainActivity.this,
+                                "Konum kaydedilmedi. İstediğiniz zaman tekrar alabilirsiniz.",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    private void updateLastUpdateText() {
+        long lastUpdate = preferencesManager.getLastUpdateTime();
+
+        if (lastUpdate > 0)
+        {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
+            String updateTime = sdf.format(new Date(lastUpdate));
+            textViewLastUpdate.setText("Son güncelleme: " + updateTime);
+            textViewLastUpdate.setVisibility(View.VISIBLE);
+
+        }
+    }
+
+    /**
+     * Otomatik güncellemeyi ayarla (günde 2 kere: 08:00 ve 20:00)
+     */
+    private void setupAutoUpdate() {
+        // 12 saatte bir çalışacak periyodik görev
+        PeriodicWorkRequest weatherUpdateRequest = new PeriodicWorkRequest.Builder(
+                WeatherUpdater.class,
+                12, // 12 saat
+                TimeUnit.HOURS
+        ).build();
+
+        // WorkManager ile görevi planla
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "WeatherAutoUpdate",
+                ExistingPeriodicWorkPolicy.KEEP, // Varsa devam ettir
+                weatherUpdateRequest
+        );
+
+    }
     private void updateUI(String cityName, double temperature, String description,
                           int humidity, double windSpeed, double feelsLike, int pressure, String icon) {
         textViewCityName.setText(cityName);

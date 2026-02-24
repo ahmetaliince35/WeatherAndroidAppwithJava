@@ -61,6 +61,19 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- Mevcut Konum Butonu -->
+        <Button
+            android:id="@+id/buttonCurrentLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📍 Mevcut Konumumun Hava Durumu"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:backgroundTint="#9C27B0"
+            android:padding="12dp"
+            android:layout_marginBottom="20dp"
+            app:cornerRadius="10dp"/>
+
         <!-- Hava Durumu Bilgi Kartı -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
@@ -88,6 +101,17 @@
                     android:textStyle="bold"
                     android:textColor="#333333"
                     android:layout_marginBottom="15dp"/>
+
+                <!-- Son Güncelleme -->
+                <TextView
+                    android:id="@+id/textViewLastUpdate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Son güncelleme: --"
+                    android:textSize="11sp"
+                    android:textColor="#999999"
+                    android:layout_marginBottom="15dp"
+                    android:visibility="gone"/>
 
                 <!-- Hava İkonu -->
                 <ImageView
@@ -280,7 +304,7 @@
                 android:enabled="false"
                 android:layout_marginStart="8dp"
                 app:cornerRadius="10dp"/>
-    </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
