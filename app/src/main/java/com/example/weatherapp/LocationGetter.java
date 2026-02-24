@@ -28,7 +28,7 @@ public class LocationGetter {
     private LocationCallback callback;
 
     public interface LocationCallback {
-        void onLocationReceived(String cityName, double latitude, double longitude);
+        void onLocationReceived(String cityName);
         void onLocationError(String error);
     }
 
@@ -159,7 +159,7 @@ public class LocationGetter {
 
                 if (cityName != null && !cityName.isEmpty()) {
 
-                    callback.onLocationReceived(cityName, latitude, longitude);
+                    callback.onLocationReceived(cityName);
                 } else {
                     callback.onLocationError("Şehir adı bulunamadı");
                 }

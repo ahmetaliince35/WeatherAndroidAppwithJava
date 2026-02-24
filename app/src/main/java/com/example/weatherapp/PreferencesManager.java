@@ -15,8 +15,6 @@ public class PreferencesManager {
     private static final String TAG = "PreferencesManager";
     private static final String PREF_NAME = "WeatherAppPrefs";
     private static final String KEY_CITY_NAME = "city_name";
-    private static final String KEY_LATITUDE = "latitude";
-    private static final String KEY_LONGITUDE = "longitude";
     private static final String KEY_LAST_UPDATE = "last_update";
     private static final String KEY_AUTO_UPDATE_ENABLED = "auto_update_enabled";
 
@@ -32,22 +30,15 @@ public class PreferencesManager {
     /**
      * Konum bilgilerini kaydet
      */
-    public void saveLocation(String cityName, double latitude, double longitude) {
+    public void saveLocation(String cityName) {
         try {
             SharedPreferences.Editor editor = preferences.edit();
             editor.putString(KEY_CITY_NAME, cityName);
-            editor.putFloat(KEY_LATITUDE, (float) latitude);
-            editor.putFloat(KEY_LONGITUDE, (float) longitude);
             editor.putLong(KEY_LAST_UPDATE, System.currentTimeMillis());
 
             // commit() kullan - apply() yerine (garantili kayıt)
-            boolean success = editor.commit();
+            editor.commit();
 
-            if (success) {
-
-                // Doğrulama - gerçekten kaydedildi mi?
-                String savedCity = preferences.getString(KEY_CITY_NAME, null);
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -65,29 +56,6 @@ public class PreferencesManager {
         }
     }
 
-    /**
-     * Kayıtlı enlem al
-     */
-    public double getSavedLatitude() {
-        try {
-            float lat = preferences.getFloat(KEY_LATITUDE, 0f);
-            return lat;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Kayıtlı boylam al
-     */
-    public double getSavedLongitude() {
-        try {
-            float lon = preferences.getFloat(KEY_LONGITUDE, 0f);
-            return lon;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
 
     /**
      * Son güncelleme zamanını al
@@ -116,18 +84,6 @@ public class PreferencesManager {
     /**
      * Otomatik güncelleme ayarını değiştir
      */
-    public void setAutoUpdateEnabled(boolean enabled) {
-        try {
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean(KEY_AUTO_UPDATE_ENABLED, enabled);
-            editor.commit();
-
-        }
-        catch (Exception e)
-        {
-            Log.e(TAG, "Otomatik güncelleme ayarlama hatası: " + e.getMessage());
-        }
-    }
 
     /**
      * Son güncelleme zamanını güncelle
@@ -187,6 +143,79 @@ public class PreferencesManager {
             Log.e(TAG, "Veri silme hatası: " + e.getMessage());
         }
     }
+    public double getTemp() {
+        try {
+            double temp = preferences.getLong("temp",0 );
+            return temp;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    public String getDesc() {
+        try {
+            String desc = preferences.getString("desc", "AÇIK");
+            return desc;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    public int getHumidity() {
+        try {
+            int humidity = preferences.getInt("humidity", 0);
+            return humidity;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    public double getWind() {
+        try {
+            double wind = preferences.getLong("wind", 0);
+            return wind;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    public double getFeels() {
+        try {
+            double feels = preferences.getLong("feels", 0);
+            return feels;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    public int getPressure() {
+        try {
+            int press= preferences.getInt("pressure", 0);
+            return press;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    public String getIcon() {
+        try {
+            String icon = preferences.getString("icon", "AÇIK");
+            return icon;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    public void saveWeatherData(String city, double temp, String desc,
+                                int humidity, double wind,
+                                double feels, int pressure, String icon) {
 
+        SharedPreferences.Editor editor = preferences.edit();
+
+        editor.putString("city", city);
+        editor.putLong("temp", (long) temp);
+        editor.putString("desc", desc);
+        editor.putInt("humidity", humidity);
+        editor.putLong("wind", (long) wind);
+        editor.putLong("feels", (long) feels);
+        editor.putInt("pressure", pressure);
+        editor.putString("icon", icon);
+        editor.putLong("lastUpdate", System.currentTimeMillis());
+
+        editor.apply();
+    }
 
 }

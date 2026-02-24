@@ -45,6 +45,8 @@ public class MainActivity extends AppCompatActivity
     private EditText editTextCity;
     private Button buttonSearch;
     private Button buttonForecast;
+    private Button buttonCurrentLocation;
+    private Button buttonSearchLocation;
     private Button buttonHourlyForecast;
     private TextView textViewCityName;
     private TextView textViewTemperature;
@@ -54,9 +56,7 @@ public class MainActivity extends AppCompatActivity
     private TextView textViewFeelsLike;
     private TextView textViewPressure;
     private TextView textViewLastUpdate;
-    private Button buttonCurrentLocation;
     private ImageView imageViewWeatherIcon;
-
     private ScrollView root;
     private int currentbackround=R.drawable.background;
 
@@ -80,29 +80,11 @@ public class MainActivity extends AppCompatActivity
         locationGetter=new LocationGetter(this);
         preferencesManager=new PreferencesManager(this);
 
-
-
-        // View'ları bağlama
-        editTextCity = findViewById(R.id.editTextCity);
-        buttonSearch = findViewById(R.id.buttonSearch);
-        buttonForecast = findViewById(R.id.buttonForecast);
-        buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
-        buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
-        textViewCityName = findViewById(R.id.textViewCityName);
-        textViewTemperature = findViewById(R.id.textViewTemperature);
-        textViewDescription = findViewById(R.id.textViewDescription);
-        textViewHumidity = findViewById(R.id.textViewHumidity);
-        textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
-        textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
-        textViewPressure = findViewById(R.id.textViewPressure);
-        textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
-        imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
-        root = findViewById(R.id.rootScroll);
-
+        initViews();
 
         setupAutoUpdate();
 
-        loadSavedLocation();
+        loadSavedWeather();
 
         // Arama butonu
         buttonSearch.setOnClickListener(new View.OnClickListener() {
@@ -115,14 +97,10 @@ public class MainActivity extends AppCompatActivity
                 } else {
                     Toast.makeText(MainActivity.this, "Lütfen şehir adı girin", Toast.LENGTH_SHORT).show();
                 }
+                buttonSearchLocation.setEnabled(true);
             }
         });
-        buttonCurrentLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                getPermission();
-            }
-        });
+
         // 5 Günlük Tahmin butonu
         buttonForecast.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -150,6 +128,46 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         });
+        buttonSearchLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String searchedCity= editTextCity.getText().toString().trim();
+                newLocationSaved(searchedCity);
+            }
+        });
+
+        buttonCurrentLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getPermission();
+            }
+        });
+    }
+
+    private void initViews()
+    {
+        // View'ları bağlama
+        editTextCity = findViewById(R.id.editTextCity);
+
+        buttonSearch = findViewById(R.id.buttonSearch);
+        buttonForecast = findViewById(R.id.buttonForecast);
+        buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
+        buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
+        buttonSearchLocation=findViewById(R.id.buttonSearchLocation);
+        textViewCityName = findViewById(R.id.textViewCityName);
+        textViewTemperature = findViewById(R.id.textViewTemperature);
+        textViewDescription = findViewById(R.id.textViewDescription);
+        textViewHumidity = findViewById(R.id.textViewHumidity);
+        textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
+        textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
+        textViewPressure = findViewById(R.id.textViewPressure);
+        textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
+
+        imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
+
+        root = findViewById(R.id.rootScroll);
+
+
     }
     private void loadSavedLocation()
     {
@@ -159,7 +177,8 @@ public class MainActivity extends AppCompatActivity
 
             currentCity = savedCity;
 
-            getWeatherData(currentCity);
+            //getWeatherData(currentCity);
+            updateLastUpdateText();
         }
     }
 
@@ -172,7 +191,7 @@ public class MainActivity extends AppCompatActivity
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},
                     Location_Permission_Request);
-            return ;
+            return;
         }
         else
         {
@@ -203,12 +222,10 @@ public class MainActivity extends AppCompatActivity
         Toast.makeText(this,"Konum Alınıyor",Toast.LENGTH_SHORT).show();
         locationGetter.getCurrentLocation(new LocationGetter.LocationCallback() {
             @Override
-            public void onLocationReceived(String cityName, double latitude, double longitude) {
+            public void onLocationReceived(String cityName) {
                 currentCity=cityName;
 
-                String savedcity= preferencesManager.getSavedCityName();
-
-                showSaveLocationDialog(cityName,latitude,longitude);
+                showSaveLocationDialog(cityName);
 
                 getWeatherData(cityName);
 
@@ -223,7 +240,20 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
+    private void newLocationSaved(String searchedCity)
+    {
 
+        currentCity=searchedCity;
+        if(preferencesManager.getSavedCityName()== null)
+        {
+            preferencesManager.saveLocation(searchedCity);
+            updateLastUpdateText();
+        }
+        else
+        {
+            showSaveLocationDialog(searchedCity);
+        }
+    }
     private void getWeatherData(String city)
     {
         String url = BASE_URL + city + "&appid=" + API_KEY + "&units=metric&lang=tr";
@@ -265,15 +295,15 @@ public class MainActivity extends AppCompatActivity
                             updateUI(cityName, temperature, description, humidity, windSpeed*3.6,
                                     feelsLike, pressure, icon);
 
+                            preferencesManager.saveWeatherData(cityName, temperature, description, humidity, windSpeed * 3.6,
+                                    feelsLike, pressure, icon
+                            );
+
                             // 5 Günlük Tahmin butonunu aktif et
                             buttonForecast.setEnabled(true);
                             buttonHourlyForecast.setEnabled(true);
 
 
-                            JSONObject coord = response.getJSONObject("coord");
-                            final double lat = coord.getDouble("lat");
-                            final double lon = coord.getDouble("lon");
-                            final String finalCityName = cityName;
 
                             // Konum kaydetme izni sor
 
@@ -297,7 +327,7 @@ public class MainActivity extends AppCompatActivity
         queue.add(jsonObjectRequest);
     }
 
-    private void showSaveLocationDialog(final String cityName, final double latitude, final double longitude) {
+    private void showSaveLocationDialog(final String cityName) {
         new AlertDialog.Builder(this)
                 .setTitle("Konum Kaydet")
                 .setMessage(cityName + " konumunu varsayılan olarak kaydetmek ister misiniz?\n\n" +
@@ -309,7 +339,7 @@ public class MainActivity extends AppCompatActivity
                     public void onClick(DialogInterface dialog, int which) {
                         // Konumu kaydet
                         Log.d(TAG, "Kullanıcı konumu kaydetmeyi onayladı");
-                        preferencesManager.saveLocation(cityName, latitude, longitude);
+                        preferencesManager.saveLocation(cityName);
                         updateLastUpdateText();
                         Toast.makeText(MainActivity.this,
                                 cityName + " varsayılan konum olarak kaydedildi",
@@ -362,6 +392,26 @@ public class MainActivity extends AppCompatActivity
                 weatherUpdateRequest
         );
 
+    }
+    private void loadSavedWeather() {
+
+        if (preferencesManager.getSavedCityName()==null) return;
+        if(preferencesManager.getIcon()!= null)
+        {
+            updateBackgroundByWeather(preferencesManager.getIcon());
+        }
+        updateUI(
+                preferencesManager.getSavedCityName(),
+                preferencesManager.getTemp(),
+                preferencesManager.getDesc(),
+                preferencesManager.getHumidity(),
+                preferencesManager.getWind(),
+                preferencesManager.getFeels(),
+                preferencesManager.getPressure(),
+                preferencesManager.getIcon()
+        );
+
+        updateLastUpdateText();
     }
     private void updateUI(String cityName, double temperature, String description,
                           int humidity, double windSpeed, double feelsLike, int pressure, String icon) {
