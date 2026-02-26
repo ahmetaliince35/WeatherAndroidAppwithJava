@@ -22,7 +22,6 @@ import java.util.Locale;
  */
 public class LocationGetter {
 
-    private static final String TAG = "LocationHelper";
     private Context context;
     private LocationManager locationManager;
     private LocationCallback callback;
@@ -145,25 +144,26 @@ public class LocationGetter {
             Geocoder geocoder = new Geocoder(context, Locale.getDefault());
             List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
 
-            if (addresses != null && !addresses.isEmpty()) {
+            if (addresses != null && !addresses.isEmpty())
+            {
                 Address address = addresses.get(0);
                 String cityName = address.getLocality(); // Şehir adı
 
-                if (cityName == null || cityName.isEmpty()) {
+              if (cityName == null || cityName.isEmpty()) {
                     cityName = address.getAdminArea(); // İl adı
-                }
-
-                if (cityName == null || cityName.isEmpty()) {
-                    cityName = address.getCountryName(); // Ülke adı
                 }
 
                 if (cityName != null && !cityName.isEmpty()) {
 
                     callback.onLocationReceived(cityName);
-                } else {
+                }
+                else
+                {
                     callback.onLocationError("Şehir adı bulunamadı");
                 }
-            } else {
+            }
+            else
+            {
                 callback.onLocationError("Adres bulunamadı");
             }
         } catch (IOException e) {

@@ -1,6 +1,7 @@
 package com.example.weatherapp;
 
 import android.content.Context;
+import android.telecom.Call;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.work.Worker;
@@ -12,6 +13,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import org.json.JSONObject;
+
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -33,20 +36,17 @@ public class WeatherUpdater extends Worker {
     @Override
     public Result doWork()
     {
-        Log.d(TAG, "WeatherUpdateWorker başlatıldı");
 
         PreferencesManager prefsManager = new PreferencesManager(getApplicationContext());
 
         // Otomatik güncelleme kapalıysa işlem yapma
         if (!prefsManager.isAutoUpdateEnabled()) {
-            Log.d(TAG, "Otomatik güncelleme kapalı");
             return Result.success();
         }
 
         // Kayıtlı şehir var mı?
         String cityName = prefsManager.getSavedCityName();
         if (cityName == null || cityName.isEmpty()) {
-            Log.d(TAG, "Kayıtlı şehir yok");
             return Result.failure();
         }
 
@@ -58,14 +58,48 @@ public class WeatherUpdater extends Worker {
         boolean success= updateWeatherData(cityName,prefsManager);
         if (success)
         {
-            Log.d(TAG, "Hava durumu güncellendi: " + cityName);
             return Result.success();
         } else
         {
-            Log.e(TAG, "Hava durumu güncellenemedi");
             return Result.retry();
         }
     }
+    /**
+     * Retrofit arayüzü
+     */
+    /*public interface WeatherService {
+        @GET("weather")
+        Call<WeatherResponse> getCurrentWeather(
+                @Query("q") String city,
+                @Query("appid") String apiKey,
+                @Query("units") String units,
+                @Query("lang") String lang
+        );
+    }
+
+    public static class WeatherResponse {
+        public Main main;
+        public List<Weather> weather;
+        public Wind wind;
+        public String name;
+
+        public static class Main {
+            public double temp;
+            public int humidity;
+            public double feels_like;
+            public int pressure;
+        }
+
+        public static class Weather {
+            public String description;
+            public String icon;
+        }
+
+        public static class Wind {
+            public double speed;
+        }
+    }*/
+
 
     /**
      * Hava durumu verisini API'den çek ve kaydet
@@ -85,10 +119,29 @@ public class WeatherUpdater extends Worker {
                     @Override
                     public void onResponse(JSONObject response) {
                         try {
+                            JSONObject main = response.getJSONObject("main");
+                            String cityName = response.getString("name");
+
+                            double temperature = main.getDouble("temp");
+                            int humidity = main.getInt("humidity");
+                            double feelsLike = main.getDouble("feels_like");
+                            int pressure = main.getInt("pressure");
+
+                            // Hava durumu açıklaması
+                            JSONObject weather = response.getJSONArray("weather").getJSONObject(0);
+                            String description = weather.getString("description");
+
+                            String icon = weather.getString("icon");
+
+                            JSONObject wind = response.getJSONObject("wind");
+                            double windSpeed = wind.getDouble("speed");
+
+                            prefsManager.saveWeatherData(cityName, temperature, description, humidity, windSpeed * 3.6,
+                                    feelsLike, pressure, icon
+                            );
                             // Başarılı - son güncelleme zamanını kaydet
                             prefsManager.updateLastUpdateTime();
                             success[0] = true;
-                            Log.d(TAG, "API'den veri alındı");
                         } catch (Exception e) {
                             Log.e(TAG, "Veri işleme hatası: " + e.getMessage());
                         } finally {

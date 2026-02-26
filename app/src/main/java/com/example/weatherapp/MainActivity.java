@@ -3,6 +3,7 @@ package com.example.weatherapp;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -71,6 +72,9 @@ public class MainActivity extends AppCompatActivity
     private static final String API_KEY = URL_API.API_KEY;
     private static final String BASE_URL = URL_API.CurrentURL;
 
+
+    private SharedPreferences sharedPreferences;
+    private SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,13 +83,12 @@ public class MainActivity extends AppCompatActivity
 
         locationGetter=new LocationGetter(this);
         preferencesManager=new PreferencesManager(this);
-
+        sharedPreferences=getSharedPreferences("WeatherAppPrefs",MODE_PRIVATE);
         initViews();
 
         setupAutoUpdate();
 
         loadSavedWeather();
-
         // Arama butonu
         buttonSearch.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -142,7 +145,33 @@ public class MainActivity extends AppCompatActivity
                 getPermission();
             }
         });
+
+        preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                // Eğer değişen veri sıcaklık, şehir veya son güncelleme zamanıysa arayüzü yenile
+                if (key.equals("city")) {
+                    loadSavedWeather();
+                }
+            }
+        };
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Ekran açıldığında dinlemeye başla
+        sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Ekran kapandığında dinlemeyi bırak (pil/hafıza tasarrufu için önemli)
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener);
+    }
+
+
 
     private void initViews()
     {
@@ -168,18 +197,6 @@ public class MainActivity extends AppCompatActivity
         root = findViewById(R.id.rootScroll);
 
 
-    }
-    private void loadSavedLocation()
-    {
-
-        String savedCity=preferencesManager.getSavedCityName();
-        if(savedCity!=null && !savedCity.isEmpty()) {
-
-            currentCity = savedCity;
-
-            //getWeatherData(currentCity);
-            updateLastUpdateText();
-        }
     }
 
     private void getPermission()
@@ -235,7 +252,7 @@ public class MainActivity extends AppCompatActivity
             public void onLocationError(String error)
             {
 
-                Toast.makeText(MainActivity.this,"Konum hatası",Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this,error,Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -304,12 +321,6 @@ public class MainActivity extends AppCompatActivity
                             buttonHourlyForecast.setEnabled(true);
 
 
-
-                            // Konum kaydetme izni sor
-
-
-
-
                         } catch (JSONException e) {
                             Toast.makeText(MainActivity.this, "Veri işlenirken hata oluştu", Toast.LENGTH_SHORT).show();
                         }
@@ -319,7 +330,6 @@ public class MainActivity extends AppCompatActivity
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(MainActivity.this, "Şehir bulunamadı", Toast.LENGTH_SHORT).show();
-                        buttonForecast.setEnabled(false);
                     }
                 }
         );
@@ -338,7 +348,6 @@ public class MainActivity extends AppCompatActivity
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // Konumu kaydet
-                        Log.d(TAG, "Kullanıcı konumu kaydetmeyi onayladı");
                         preferencesManager.saveLocation(cityName);
                         updateLastUpdateText();
                         Toast.makeText(MainActivity.this,
@@ -350,7 +359,6 @@ public class MainActivity extends AppCompatActivity
                 .setNegativeButton("Hayır", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Log.d(TAG, "Kullanıcı konumu kaydetmeyi reddetti");
                         preferencesManager.clearAll();
                         Toast.makeText(MainActivity.this,
                                 "Konum kaydedilmedi. İstediğiniz zaman tekrar alabilirsiniz.",
@@ -378,11 +386,10 @@ public class MainActivity extends AppCompatActivity
      * Otomatik güncellemeyi ayarla (günde 2 kere: 08:00 ve 20:00)
      */
     private void setupAutoUpdate() {
-        // 12 saatte bir çalışacak periyodik görev
         PeriodicWorkRequest weatherUpdateRequest = new PeriodicWorkRequest.Builder(
                 WeatherUpdater.class,
-                12, // 12 saat
-                TimeUnit.HOURS
+                15,
+                TimeUnit.MINUTES
         ).build();
 
         // WorkManager ile görevi planla

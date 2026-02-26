@@ -118,7 +118,7 @@ public class PreferencesManager {
             long timeDifference = currentTime - lastUpdate;
 
             // 12 saat = 12 * 60 * 60 * 1000 ms
-            long twelveHours = 12 * 60 * 60 * 1000;
+            long twelveHours = 60*1000 ;
 
             boolean shouldUpdate = timeDifference >= twelveHours;
 
@@ -213,7 +213,6 @@ public class PreferencesManager {
         editor.putLong("feels", (long) feels);
         editor.putInt("pressure", pressure);
         editor.putString("icon", icon);
-        editor.putLong("lastUpdate", System.currentTimeMillis());
 
         editor.apply();
     }
