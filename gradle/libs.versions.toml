@@ -7,6 +7,8 @@ appcompat = "1.7.1"
 material = "1.13.0"
 activity = "1.12.3"
 constraintlayout = "2.2.1"
+retrofit = "2.9.0"
+gson_converter = "2.9.0"
 
 [libraries]
 
@@ -22,6 +24,8 @@ recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version
 workmanager={group="androidx.work",name="work-runtime",version="2.8.1"}
 locationservices={group="com.google.android.gms",name="play-services-location",version="21.0.1"}
 cardview = { group = "androidx.cardview", name = "cardview", version = "1.0.0" }
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "gson_converter" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 

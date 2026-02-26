@@ -16,12 +16,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Konum işlemleri için yardımcı sınıf
- * GPS ile mevcut konumu alır ve şehir adını bulur
- */
 public class LocationGetter {
 
+    private static final String TAG = "LocationGetter";
     private Context context;
     private LocationManager locationManager;
     private LocationCallback callback;
@@ -34,44 +31,40 @@ public class LocationGetter {
     public LocationGetter(Context context) {
         this.context = context;
         this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        Log.d(TAG, "LocationGetter initialized");
     }
 
-    /**
-     * Mevcut konumu alır
-     */
     public void getCurrentLocation(LocationCallback callback) {
         this.callback = callback;
+        Log.d(TAG, "getCurrentLocation called");
 
-        // İzin kontrolü
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "Location permission not granted");
             callback.onLocationError("Konum izni verilmedi");
             return;
         }
 
-        // GPS aktif mi kontrol et
         boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        Log.d(TAG, "GPS enabled: " + isGPSEnabled + ", Network enabled: " + isNetworkEnabled);
 
         if (!isGPSEnabled && !isNetworkEnabled) {
             callback.onLocationError("GPS veya ağ konumu kapalı");
             return;
         }
 
-        // Önce son bilinen konumu dene
         Location lastKnownLocation = getLastKnownLocation();
         if (lastKnownLocation != null) {
+            Log.d(TAG, "Last known location found");
             getCityFromLocation(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
             return;
         }
 
-        // Son bilinen konum yoksa, yeni konum al
+        Log.d(TAG, "No last known location, requesting new location");
         requestNewLocation();
     }
 
-    /**
-     * Son bilinen konumu al
-     */
     @RequiresPermission(anyOf = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION})
     private Location getLastKnownLocation() {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -81,6 +74,7 @@ public class LocationGetter {
 
         Location gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         Location networkLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        Log.d(TAG, "Last known GPS location: " + gpsLocation + ", Network location: " + networkLocation);
 
         if (gpsLocation != null && networkLocation != null) {
             return gpsLocation.getTime() > networkLocation.getTime() ? gpsLocation : networkLocation;
@@ -89,19 +83,19 @@ public class LocationGetter {
         return gpsLocation != null ? gpsLocation : networkLocation;
     }
 
-    /**
-     * Yeni konum talebi
-     */
     private void requestNewLocation() {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "Permission not granted for requestNewLocation");
             return;
         }
+
+        Log.d(TAG, "requestNewLocation called");
 
         LocationListener locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                // Konum alındı
+                Log.d(TAG, "New location received: " + location);
                 getCityFromLocation(location.getLatitude(), location.getLongitude());
                 locationManager.removeUpdates(this);
             }
@@ -116,7 +110,6 @@ public class LocationGetter {
             public void onProviderDisabled(String provider) {}
         };
 
-        // GPS'ten konum al
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             locationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
@@ -124,51 +117,47 @@ public class LocationGetter {
                     0,
                     locationListener
             );
-        }
-        // Network'ten konum al
-        else if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            Log.d(TAG, "Requesting GPS location updates");
+        } else if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
             locationManager.requestLocationUpdates(
                     LocationManager.NETWORK_PROVIDER,
                     0,
                     0,
                     locationListener
             );
+            Log.d(TAG, "Requesting Network location updates");
         }
     }
 
-    /**
-     * Koordinatlardan şehir adını bul
-     */
     private void getCityFromLocation(double latitude, double longitude) {
+        Log.d(TAG, "getCityFromLocation: lat=" + latitude + ", lon=" + longitude);
         try {
             Geocoder geocoder = new Geocoder(context, Locale.getDefault());
             List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
 
-            if (addresses != null && !addresses.isEmpty())
-            {
+            if (addresses != null && !addresses.isEmpty()) {
                 Address address = addresses.get(0);
-                String cityName = address.getLocality(); // Şehir adı
-
-              if (cityName == null || cityName.isEmpty()) {
-                    cityName = address.getAdminArea(); // İl adı
+                String cityName = address.getLocality();
+                if (cityName == null || cityName.isEmpty()) {
+                    cityName = address.getAdminArea();
                 }
 
                 if (cityName != null && !cityName.isEmpty()) {
-
+                    Log.d(TAG, "City found: " + cityName);
                     callback.onLocationReceived(cityName);
-                }
-                else
-                {
+                } else {
+                    Log.e(TAG, "City name not found in address");
                     callback.onLocationError("Şehir adı bulunamadı");
                 }
-            }
-            else
-            {
+            } else {
+                Log.e(TAG, "No addresses found");
                 callback.onLocationError("Adres bulunamadı");
             }
         } catch (IOException e) {
+            Log.e(TAG, "Geocoder IOException: " + e.getMessage());
             callback.onLocationError("Konum çevirme hatası: " + e.getMessage());
         } catch (Exception e) {
+            Log.e(TAG, "Exception in getCityFromLocation: " + e.getMessage());
             callback.onLocationError("Konum hatası: " + e.getMessage());
         }
     }

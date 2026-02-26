@@ -43,6 +43,9 @@ dependencies {
     implementation(libs.cardview)
     implementation(libs.locationservices)
     implementation(libs.workmanager)
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

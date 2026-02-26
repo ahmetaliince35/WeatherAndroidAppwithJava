@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -20,6 +21,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
@@ -31,8 +33,7 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.security.Permission;
+;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -41,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 public class MainActivity extends AppCompatActivity
 {
 
-    private static final String TAG = "MainActivity";
+
 
     private EditText editTextCity;
     private Button buttonSearch;
@@ -87,6 +88,7 @@ public class MainActivity extends AppCompatActivity
         initViews();
 
         setupAutoUpdate();
+
 
         loadSavedWeather();
         // Arama butonu
@@ -388,8 +390,8 @@ public class MainActivity extends AppCompatActivity
     private void setupAutoUpdate() {
         PeriodicWorkRequest weatherUpdateRequest = new PeriodicWorkRequest.Builder(
                 WeatherUpdater.class,
-                15,
-                TimeUnit.MINUTES
+                12,
+                TimeUnit.HOURS
         ).build();
 
         // WorkManager ile görevi planla
@@ -400,6 +402,7 @@ public class MainActivity extends AppCompatActivity
         );
 
     }
+
     private void loadSavedWeather() {
 
         if (preferencesManager.getSavedCityName()==null) return;
