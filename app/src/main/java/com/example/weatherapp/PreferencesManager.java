@@ -6,10 +6,9 @@ import android.util.Log;
 public class PreferencesManager {
 
     private static final String TAG = "PreferencesManager";
-    private static final String PREF_NAME = "WeatherAppPrefs";
+    public static final String PREF_NAME = "WeatherAppPrefs";
     private static final String KEY_CITY_NAME = "city_name";
     private static final String KEY_LAST_UPDATE = "last_update";
-    private static final String KEY_AUTO_UPDATE_ENABLED = "auto_update_enabled";
 
     private SharedPreferences preferences;
     private Context context;
@@ -54,16 +53,7 @@ public class PreferencesManager {
         }
     }
 
-    public boolean isAutoUpdateEnabled() {
-        try {
-            boolean enabled = preferences.getBoolean(KEY_AUTO_UPDATE_ENABLED, true);
-            Log.d(TAG, "isAutoUpdateEnabled: " + enabled);
-            return enabled;
-        } catch (Exception e) {
-            Log.e(TAG, "isAutoUpdateEnabled error: " + e.getMessage());
-            return true;
-        }
-    }
+
 
     public void updateLastUpdateTime() {
         try {
@@ -85,7 +75,7 @@ public class PreferencesManager {
                 return true;
             }
             long currentTime = System.currentTimeMillis();
-            long twelveHours = 12 * 60 * 60 * 1000;
+            long twelveHours = 12*60* 60 * 1000;
             boolean shouldUpdate = (currentTime - lastUpdate) >= twelveHours;
             Log.d(TAG, "shouldUpdate: " + shouldUpdate);
             return shouldUpdate;

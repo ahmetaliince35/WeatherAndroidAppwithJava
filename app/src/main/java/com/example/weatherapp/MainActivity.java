@@ -5,6 +5,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -15,7 +16,8 @@ import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,7 +26,6 @@ import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
-
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -33,7 +34,6 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import org.json.JSONException;
 import org.json.JSONObject;
-;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -65,15 +65,10 @@ public class MainActivity extends AppCompatActivity
     private String currentCity = "";
     private LocationGetter locationGetter;
     private PreferencesManager preferencesManager;
-
+    private ActivityResultLauncher<String> notificationPermissionLauncher;
 
     private static final int Location_Permission_Request=100;
-
-    // OpenWeatherMap API Key - Kendi API key'inizi buraya ekleyin
-    private static final String API_KEY = URL_API.API_KEY;
-    private static final String BASE_URL = URL_API.CurrentURL;
-
-
+    private static final  String TAG="Main Activity";
     private SharedPreferences sharedPreferences;
     private SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
     @Override
@@ -84,79 +79,16 @@ public class MainActivity extends AppCompatActivity
 
         locationGetter=new LocationGetter(this);
         preferencesManager=new PreferencesManager(this);
-        sharedPreferences=getSharedPreferences("WeatherAppPrefs",MODE_PRIVATE);
+        sharedPreferences=getSharedPreferences(PreferencesManager.PREF_NAME,MODE_PRIVATE);
         initViews();
 
         setupAutoUpdate();
 
-
         loadSavedWeather();
-        // Arama butonu
-        buttonSearch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String city = editTextCity.getText().toString().trim();
-                if (!city.isEmpty()) {
-                    currentCity = city;
-                    getWeatherData(city);
-                } else {
-                    Toast.makeText(MainActivity.this, "Lütfen şehir adı girin", Toast.LENGTH_SHORT).show();
-                }
-                buttonSearchLocation.setEnabled(true);
-            }
-        });
 
-        // 5 Günlük Tahmin butonu
-        buttonForecast.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!currentCity.isEmpty()) {
-                    Intent intent = new Intent(MainActivity.this, Forecastactivity.class);
-                    intent.putExtra("CITY_NAME", currentCity);
-                    intent.putExtra("background-res",currentbackround);
-                    startActivity(intent);
-                } else {
-                    Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        buttonHourlyForecast.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!currentCity.isEmpty()) {
-                    Intent intent = new Intent(MainActivity.this, Hourlyforecastactivity.class);
-                    intent.putExtra("CITY_NAME", currentCity);
-                    intent.putExtra("background-res",currentbackround);
-                    startActivity(intent);
-                } else {
-                    Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        buttonSearchLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String searchedCity= editTextCity.getText().toString().trim();
-                newLocationSaved(searchedCity);
-            }
-        });
+        buttonClicked();
 
-        buttonCurrentLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                getPermission();
-            }
-        });
-
-        preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                // Eğer değişen veri sıcaklık, şehir veya son güncelleme zamanıysa arayüzü yenile
-                if (key.equals("city")) {
-                    loadSavedWeather();
-                }
-            }
-        };
+        notificationSettings();
     }
 
     @Override
@@ -169,15 +101,98 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
-        // Ekran kapandığında dinlemeyi bırak (pil/hafıza tasarrufu için önemli)
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener);
     }
 
-
-
-    private void initViews()
+    private void notificationSettings()
     {
-        // View'ları bağlama
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher = registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    isGranted -> {
+                        if (isGranted) {
+                            Log.d("MAINACTIVITY", "Bildirim izni verildi");
+                            Toast.makeText(this, "Bildirimler aktif", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Log.d("MAINACTIVITY", "Bildirim izni reddedildi");
+                            Toast.makeText(this, "Bildirimler kapalı", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+            );
+
+            requestNotificationPermission();
+        }
+
+        preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                // Eğer değişen veri sıcaklık, şehir veya son güncelleme zamanıysa arayüzü yenile
+                if (key.equals("city")) {
+                    loadSavedWeather();
+                }
+            }
+        };
+    }
+    private void buttonClicked() {
+        buttonSearch.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            String city = editTextCity.getText().toString().trim();
+            if (!city.isEmpty()) {
+                currentCity = city;
+                preferencesManager.clearAll();
+                getWeatherData(city);
+                buttonSearchLocation.setEnabled(true);
+            } else {
+                Toast.makeText(MainActivity.this, "Lütfen şehir adı girin", Toast.LENGTH_SHORT).show();
+            }
+        }
+    });
+
+        buttonForecast.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (!currentCity.isEmpty()) {
+                Intent intent = new Intent(MainActivity.this, Forecastactivity.class);
+                intent.putExtra("CITY_NAME", currentCity);
+                intent.putExtra("background-res",currentbackround);
+                startActivity(intent);
+            } else {
+                Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
+            }
+        }
+    });
+        buttonHourlyForecast.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (!currentCity.isEmpty()) {
+                Intent intent = new Intent(MainActivity.this, Hourlyforecastactivity.class);
+                intent.putExtra("CITY_NAME", currentCity);
+                intent.putExtra("background-res",currentbackround);
+                startActivity(intent);
+            } else {
+                Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
+            }
+        }
+    });
+        buttonSearchLocation.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            String searchedCity= editTextCity.getText().toString().trim();
+            newLocationSaved(searchedCity);
+        }
+    });
+
+        buttonCurrentLocation.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            getPermission();
+            }
+        });
+    }
+
+private void initViews()
+    {
         editTextCity = findViewById(R.id.editTextCity);
 
         buttonSearch = findViewById(R.id.buttonSearch);
@@ -185,6 +200,7 @@ public class MainActivity extends AppCompatActivity
         buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
         buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
         buttonSearchLocation=findViewById(R.id.buttonSearchLocation);
+
         textViewCityName = findViewById(R.id.textViewCityName);
         textViewTemperature = findViewById(R.id.textViewTemperature);
         textViewDescription = findViewById(R.id.textViewDescription);
@@ -226,8 +242,6 @@ public class MainActivity extends AppCompatActivity
 
         if (requestCode == Location_Permission_Request) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                // İzin verildi, konumu al
                 getCurrentLocation();
             } else {
 
@@ -267,6 +281,7 @@ public class MainActivity extends AppCompatActivity
         {
             preferencesManager.saveLocation(searchedCity);
             updateLastUpdateText();
+            showSaveLocationDialog(searchedCity);
         }
         else
         {
@@ -275,68 +290,27 @@ public class MainActivity extends AppCompatActivity
     }
     private void getWeatherData(String city)
     {
-        String url = BASE_URL + city + "&appid=" + API_KEY + "&units=metric&lang=tr";
+        WeatherJsonAPI repo = new WeatherJsonAPI(this,URL_API.CurrentURL);
+        repo.getWeather(currentCity, new WeatherJsonAPI.WeatherCallback() {
+            @Override
+            public void onSuccess(WeatherJsonAPI.WeatherData data) {
 
-        RequestQueue queue = Volley.newRequestQueue(this);
+                updateUI(data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
+                        data.feelsLike, data.pressure, data.icon);
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
-                Request.Method.GET,
-                url,
-                null,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        try {
-                            // Şehir adı
-                            String cityName = response.getString("name");
+                preferencesManager.saveWeatherData(data.cityName, data.temp, data.description, data.humidity, data.windSpeed * 3.6,
+                        data.feelsLike, data.pressure, data.icon
+                );
+                buttonForecast.setEnabled(true);
+                buttonHourlyForecast.setEnabled(true);
+                updateBackgroundByWeather(data.icon);
+            }
 
-                            // Ana hava durumu bilgileri
-                            JSONObject main = response.getJSONObject("main");
-                            double temperature = main.getDouble("temp");
-                            int humidity = main.getInt("humidity");
-                            double feelsLike = main.getDouble("feels_like");
-                            int pressure = main.getInt("pressure");
-
-                            // Hava durumu açıklaması
-                            JSONObject weather = response.getJSONArray("weather").getJSONObject(0);
-                            String description = weather.getString("description");
-
-                            String icon = weather.getString("icon");
-                            updateBackgroundByWeather(icon);
-
-
-
-                            // Rüzgar hızı
-                            JSONObject wind = response.getJSONObject("wind");
-                            double windSpeed = wind.getDouble("speed");
-
-                            // UI'ı güncelleme
-                            updateUI(cityName, temperature, description, humidity, windSpeed*3.6,
-                                    feelsLike, pressure, icon);
-
-                            preferencesManager.saveWeatherData(cityName, temperature, description, humidity, windSpeed * 3.6,
-                                    feelsLike, pressure, icon
-                            );
-
-                            // 5 Günlük Tahmin butonunu aktif et
-                            buttonForecast.setEnabled(true);
-                            buttonHourlyForecast.setEnabled(true);
-
-
-                        } catch (JSONException e) {
-                            Toast.makeText(MainActivity.this, "Veri işlenirken hata oluştu", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Toast.makeText(MainActivity.this, "Şehir bulunamadı", Toast.LENGTH_SHORT).show();
-                    }
-                }
-        );
-
-        queue.add(jsonObjectRequest);
+            @Override
+            public void onError(String error) {
+                Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void showSaveLocationDialog(final String cityName) {
@@ -390,7 +364,7 @@ public class MainActivity extends AppCompatActivity
     private void setupAutoUpdate() {
         PeriodicWorkRequest weatherUpdateRequest = new PeriodicWorkRequest.Builder(
                 WeatherUpdater.class,
-                12,
+                1,
                 TimeUnit.HOURS
         ).build();
 
@@ -402,7 +376,27 @@ public class MainActivity extends AppCompatActivity
         );
 
     }
+    //Worker a ait görevleri denemek için oluşturuldu
+    /*public void setupAutoUpdateNow() {
+        // Worker için OneTimeWorkRequest oluştur
+        OneTimeWorkRequest weatherWorkRequest = new OneTimeWorkRequest.Builder(WeatherUpdater.class)
+                .build();
 
+        // Worker'ı kuyruğa ekle
+        WorkManager.getInstance(this)
+                .enqueue(weatherWorkRequest);
+
+        Log.d("WeatherWorkerLauncher", "WeatherWorker kuyruğa eklendi");
+    }*/
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Bildirim izni isteniyor...");
+                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
     private void loadSavedWeather() {
 
         if (preferencesManager.getSavedCityName()==null) return;

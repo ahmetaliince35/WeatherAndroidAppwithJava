@@ -32,14 +32,10 @@ public class Hourlyforecastactivity extends AppCompatActivity {
     private List<ForecastItem> hourlyList;
     private ProgressBar progressBar;
     private TextView textViewTitle;
-    private TextView textViewDataSource;
 
     private String cityName;
     private LinearLayout root;
 
-    // OpenWeatherMap API Key - MainActivity ile aynı olmalı
-    private static final String API_KEY = URL_API.API_KEY;
-    private static final String BASE_URL = URL_API.ForecastURL;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,7 +63,7 @@ public class Hourlyforecastactivity extends AppCompatActivity {
         // View'ları bağla
 
         // Başlığı ayarla
-        textViewTitle.setText(cityName + " - 48 Saatlik Tahmin");
+        textViewTitle.setText(cityName + " - 72 Saatlik Tahmin");
 
         // RecyclerView ayarları
         hourlyList = new ArrayList<>();
@@ -82,112 +78,25 @@ public class Hourlyforecastactivity extends AppCompatActivity {
     private void getHourlyForecast() {
         progressBar.setVisibility(View.VISIBLE);
 
-        // OpenWeatherMap'in 5 günlük/3 saatlik tahmin API'si
-        // 48 saat = 16 veri noktası (3 saatte bir)
-        String url = BASE_URL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr&cnt=24";
+        WeatherJsonAPI hourlyData = new WeatherJsonAPI(this, URL_API.ForecastURL);
 
-        RequestQueue queue = Volley.newRequestQueue(this);
-
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
-                Request.Method.GET,
-                url,
-                null,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        progressBar.setVisibility(View.GONE);
-                        parseHourlyData(response);
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        progressBar.setVisibility(View.GONE);
-                        Toast.makeText(Hourlyforecastactivity.this,
-                                "Veri alınırken hata oluştu: " + error.getMessage(),
-                                Toast.LENGTH_SHORT).show();
-                    }
-                }
-        );
-
-        queue.add(jsonObjectRequest);
-    }
-
-    private void parseHourlyData(JSONObject response) {
-        try {
-            JSONArray list = response.getJSONArray("list");
-
-            for (int i = 0; i < list.length(); i++) {
-                double rain = 0;
-                double rainprob = 0;
-                JSONObject hourData = list.getJSONObject(i);
-                long timestamp= hourData.getLong("dt");
-                String dateHour=formatDate(timestamp);
-
-
-                // Hava durumu bilgileri
-                JSONObject main = hourData.getJSONObject("main");
-                double temp = main.getDouble("temp");
-                int humidity = main.getInt("humidity");
-
-                JSONObject weather = hourData.getJSONArray("weather").getJSONObject(0);
-                String description = weather.getString("description");
-                String icon = weather.getString("icon");
-
-                double tempMin = main.getDouble("temp_min");
-                double tempMax = main.getDouble("temp_max");
-                JSONObject wind = hourData.getJSONObject("wind");
-                double windSpeed = wind.getDouble("speed");
-
-
-                rainprob = hourData.getDouble("pop");
-
-                if(hourData.has("rain"))
-                {
-                    JSONObject rainobj=hourData.getJSONObject("rain");
-
-                    rain=rainobj.getDouble("3h");
-
-
-                }
-                if(hourData.has("snow"))
-                {
-                    JSONObject snowobj=hourData.getJSONObject(("snow"));
-                    rain=snowobj.getDouble("3h");
-                }
-                // ForecastItem oluştur ve listeye ekle
-                ForecastItem forecastItem = new ForecastItem(
-                        dateHour,
-                        temp,
-                        description,
-                        icon,
-                        humidity,
-                        rainprob*100,
-                        rain,
-                        windSpeed*3.6,
-                        tempMin,
-                        tempMax
-                );
-                hourlyList.add(forecastItem);
+        hourlyData.getHourlyForecast(cityName, new WeatherJsonAPI.HourlyCallback() {
+            @Override
+            public void onSuccess(List<ForecastItem> newHourlyList) {
+                progressBar.setVisibility(View.GONE);
+                hourlyList.clear();             // Adapter’in kullandığı listeyi temizle
+                hourlyList.addAll(newHourlyList); // Yeni verileri ekle
+                adapter.notifyDataSetChanged(); // RecyclerView’i güncelle
             }
 
-            adapter.notifyDataSetChanged();
-
-            if (hourlyList.isEmpty()) {
-                Toast.makeText(this, "Veri bulunamadı", Toast.LENGTH_SHORT).show();
+            @Override
+            public void onError(String error) {
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(Hourlyforecastactivity.this, error, Toast.LENGTH_SHORT).show();
             }
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Veri işlenirken hata oluştu", Toast.LENGTH_SHORT).show();
-        }
+        });
     }
 
-    private String formatDate(long timestamp) {
-        Date date = new Date(timestamp * 1000);
-        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH.mm - EE", new Locale("tr", "TR"));
-        return sdf.format(date);
-    }
     @Override
     public boolean onSupportNavigateUp() {
         finish();

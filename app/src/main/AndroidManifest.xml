@@ -2,9 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.weatherapp">
 
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -14,7 +16,8 @@
         android:roundIcon="@mipmap/icon_background"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Weatherapp">
+        android:theme="@style/Theme.Weatherapp"
+        android:usesCleartextTraffic="true">
         <!-- Saatlik tahmin aktivitesi -->
         <activity
             android:name=".Hourlyforecastactivity"
@@ -34,10 +37,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

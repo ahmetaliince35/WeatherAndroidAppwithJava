@@ -79,7 +79,7 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
         return forecastList.size();
     }
 
-    private void setWeatherIcon(ImageView imageView, String icon,String description) {
+    public void setWeatherIcon(ImageView imageView, String icon,String description) {
         int iconResource;
         switch (icon) {
             case "01d":
