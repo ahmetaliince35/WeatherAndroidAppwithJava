@@ -1,6 +1,7 @@
 package com.example.weatherapp;
 
 import android.content.Context;
+import android.util.Log;
 import android.widget.ProgressBar;
 
 import com.android.volley.Request;
@@ -26,6 +27,7 @@ import java.util.TimeZone;
 public class WeatherJsonAPI {
 
     private static final String API_KEY = URL_API.API_KEY;
+    private static final String TAG="WeatherJsonAPI";
     private  final String BASE_URL;
     private final  RequestQueue requestQueue;
 
@@ -68,7 +70,7 @@ public class WeatherJsonAPI {
     // Hava durumu verisini çek
     public void getWeather(String cityName, final WeatherCallback callback) {
         String url = BASE_URL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr";
-
+        Log.d(TAG,"anlık hava çalışyor");
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
                 url,
