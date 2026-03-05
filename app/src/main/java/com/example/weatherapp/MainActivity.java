@@ -41,14 +41,11 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity
 {
-
-
-
     private EditText editTextCity;
     private Button buttonSearch;
     private Button buttonForecast;
     private Button buttonCurrentLocation;
-    private Button buttonSearchLocation;
+    private Button buttonClearAll;
     private Button buttonHourlyForecast;
     private TextView textViewCityName;
     private TextView textViewTemperature;
@@ -59,27 +56,28 @@ public class MainActivity extends AppCompatActivity
     private TextView textViewPressure;
     private TextView textViewLastUpdate;
     private ImageView imageViewWeatherIcon;
+    private ImageView windDirect;
     private ScrollView root;
     private int currentbackround=R.drawable.background;
 
     private String currentCity = "";
+    private boolean isNewSearch=false;
+    private boolean isSaveLocation;
     private LocationGetter locationGetter;
     private PreferencesManager preferencesManager;
+    private WeatherJsonAPI.WeatherData tempData;
     private ActivityResultLauncher<String> notificationPermissionLauncher;
 
     private static final int Location_Permission_Request=100;
     private static final  String TAG="Main Activity";
-    private SharedPreferences sharedPreferences;
-    private SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         locationGetter=new LocationGetter(this);
         preferencesManager=new PreferencesManager(this);
-        sharedPreferences=getSharedPreferences(PreferencesManager.PREF_NAME,MODE_PRIVATE);
         initViews();
 
         setupAutoUpdate();
@@ -91,18 +89,6 @@ public class MainActivity extends AppCompatActivity
         notificationSettings();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Ekran açıldığında dinlemeye başla
-        sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        sharedPreferences.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener);
-    }
 
     private void notificationSettings()
     {
@@ -123,15 +109,6 @@ public class MainActivity extends AppCompatActivity
             requestNotificationPermission();
         }
 
-        preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                // Eğer değişen veri sıcaklık, şehir veya son güncelleme zamanıysa arayüzü yenile
-                if (key.equals("city")) {
-                    loadSavedWeather();
-                }
-            }
-        };
     }
     private void buttonClicked() {
         buttonSearch.setOnClickListener(new View.OnClickListener() {
@@ -140,9 +117,10 @@ public class MainActivity extends AppCompatActivity
             String city = editTextCity.getText().toString().trim();
             if (!city.isEmpty()) {
                 currentCity = city;
-                preferencesManager.clearAll();
-                getWeatherData(city);
-                buttonSearchLocation.setEnabled(true);
+                showSaveLocationDialog(currentCity);
+                getWeatherData(currentCity);
+                buttonClearAll.setEnabled(true);
+                isNewSearch=true;
             } else {
                 Toast.makeText(MainActivity.this, "Lütfen şehir adı girin", Toast.LENGTH_SHORT).show();
             }
@@ -156,6 +134,8 @@ public class MainActivity extends AppCompatActivity
                 Intent intent = new Intent(MainActivity.this, Forecastactivity.class);
                 intent.putExtra("CITY_NAME", currentCity);
                 intent.putExtra("background-res",currentbackround);
+                intent.putExtra("isNewSearch",isNewSearch);
+                intent.putExtra("isSaveLocation",isSaveLocation);
                 startActivity(intent);
             } else {
                 Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
@@ -169,17 +149,34 @@ public class MainActivity extends AppCompatActivity
                 Intent intent = new Intent(MainActivity.this, Hourlyforecastactivity.class);
                 intent.putExtra("CITY_NAME", currentCity);
                 intent.putExtra("background-res",currentbackround);
+                intent.putExtra("isNewSearch",isNewSearch);
+                intent.putExtra("isSaveLocation",isSaveLocation);
                 startActivity(intent);
             } else {
                 Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
             }
         }
     });
-        buttonSearchLocation.setOnClickListener(new View.OnClickListener() {
+        buttonClearAll.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            String searchedCity= editTextCity.getText().toString().trim();
-            newLocationSaved(searchedCity);
+            preferencesManager.clearAll();
+
+            currentCity = "";
+            isSaveLocation = false;
+
+            // UI'yi güvenli şekilde temizle
+            textViewCityName.setText("Şehir yok");
+            textViewTemperature.setText("--°C");
+            textViewDescription.setText("---");
+            textViewHumidity.setText("Nem: --%");
+            textViewWindSpeed.setText("Rüzgar hızı: -- km/s");
+            textViewFeelsLike.setText("---");
+            textViewPressure.setText("Basınç: -- hPa");
+            textViewLastUpdate.setText("Son güncelleme: --");
+            imageViewWeatherIcon.setImageResource(R.drawable.icon_sunny);
+            root.setBackgroundResource(R.drawable.background);
+            windDirect.setRotation(0);
         }
     });
 
@@ -199,7 +196,7 @@ private void initViews()
         buttonForecast = findViewById(R.id.buttonForecast);
         buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
         buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
-        buttonSearchLocation=findViewById(R.id.buttonSearchLocation);
+        buttonClearAll=findViewById(R.id.buttonClearAll);
 
         textViewCityName = findViewById(R.id.textViewCityName);
         textViewTemperature = findViewById(R.id.textViewTemperature);
@@ -209,7 +206,7 @@ private void initViews()
         textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
         textViewPressure = findViewById(R.id.textViewPressure);
         textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
-
+        windDirect=findViewById(R.id.imageViewWindTurbine);
         imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
 
         root = findViewById(R.id.rootScroll);
@@ -259,8 +256,8 @@ private void initViews()
                 currentCity=cityName;
 
                 showSaveLocationDialog(cityName);
-
-                getWeatherData(cityName);
+                isNewSearch= !currentCity.equals(preferencesManager.getSavedCityName());
+                getWeatherData(currentCity);
 
                 Toast.makeText(MainActivity.this,"Konum: "+cityName,Toast.LENGTH_SHORT).show();
             }
@@ -273,34 +270,17 @@ private void initViews()
         });
     }
 
-    private void newLocationSaved(String searchedCity)
-    {
-
-        currentCity=searchedCity;
-        if(preferencesManager.getSavedCityName()== null)
-        {
-            preferencesManager.saveLocation(searchedCity);
-            updateLastUpdateText();
-            showSaveLocationDialog(searchedCity);
-        }
-        else
-        {
-            showSaveLocationDialog(searchedCity);
-        }
-    }
     private void getWeatherData(String city)
     {
         WeatherJsonAPI repo = new WeatherJsonAPI(this,URL_API.CurrentURL);
-        repo.getWeather(currentCity, new WeatherJsonAPI.WeatherCallback() {
+        repo.getWeather(city, new WeatherJsonAPI.WeatherCallback() {
             @Override
             public void onSuccess(WeatherJsonAPI.WeatherData data) {
 
                 updateUI(data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
-                        data.feelsLike, data.pressure, data.icon);
+                        data.feelsLike, data.pressure, data.icon,data.windDirection);
 
-                preferencesManager.saveWeatherData(data.cityName, data.temp, data.description, data.humidity, data.windSpeed * 3.6,
-                        data.feelsLike, data.pressure, data.icon
-                );
+                tempData=data;
                 buttonForecast.setEnabled(true);
                 buttonHourlyForecast.setEnabled(true);
                 updateBackgroundByWeather(data.icon);
@@ -325,7 +305,17 @@ private void initViews()
                     public void onClick(DialogInterface dialog, int which) {
                         // Konumu kaydet
                         preferencesManager.saveLocation(cityName);
-                        updateLastUpdateText();
+                        isSaveLocation=true;
+                        if(tempData!=null)
+                        {
+                            preferencesManager.saveWeatherData(
+                                    tempData.cityName,tempData.temp,tempData.description,
+                                    tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
+                                    tempData.pressure,tempData.icon,tempData.windDirection);
+                            updateUI(tempData.cityName,tempData.temp,tempData.description,
+                                    tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
+                                    tempData.pressure,tempData.icon,tempData.windDirection);
+                        }
                         Toast.makeText(MainActivity.this,
                                 cityName + " varsayılan konum olarak kaydedildi",
                                 Toast.LENGTH_LONG).show();
@@ -335,28 +325,17 @@ private void initViews()
                 .setNegativeButton("Hayır", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        preferencesManager.clearAll();
                         Toast.makeText(MainActivity.this,
                                 "Konum kaydedilmedi. İstediğiniz zaman tekrar alabilirsiniz.",
                                 Toast.LENGTH_SHORT).show();
+                        isSaveLocation=false;
                     }
+
                 })
                 .setCancelable(false)
                 .show();
     }
 
-    private void updateLastUpdateText() {
-        long lastUpdate = preferencesManager.getLastUpdateTime();
-
-        if (lastUpdate > 0)
-        {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
-            String updateTime = sdf.format(new Date(lastUpdate));
-            textViewLastUpdate.setText("Son güncelleme: " + updateTime);
-            textViewLastUpdate.setVisibility(View.VISIBLE);
-
-        }
-    }
 
     /**
      * Otomatik güncellemeyi ayarla (günde 2 kere: 08:00 ve 20:00)
@@ -404,6 +383,9 @@ private void initViews()
         {
             updateBackgroundByWeather(preferencesManager.getIcon());
         }
+        currentCity = preferencesManager.getSavedCityName();
+        buttonForecast.setEnabled(true);
+        buttonHourlyForecast.setEnabled(true);
         updateUI(
                 preferencesManager.getSavedCityName(),
                 preferencesManager.getTemp(),
@@ -412,23 +394,37 @@ private void initViews()
                 preferencesManager.getWind(),
                 preferencesManager.getFeels(),
                 preferencesManager.getPressure(),
-                preferencesManager.getIcon()
+                preferencesManager.getIcon(),
+                preferencesManager.getWindDegree()
         );
-
-        updateLastUpdateText();
     }
+
     private void updateUI(String cityName, double temperature, String description,
-                          int humidity, double windSpeed, double feelsLike, int pressure, String icon) {
-        textViewCityName.setText(cityName);
+                          int humidity, double windSpeed, double feelsLike, int pressure, String icon,float winddirection) {
+        textViewCityName.setText(cityName !=null ? cityName:" --");
         textViewTemperature.setText(String.format("%.1f°C", temperature));
-        textViewDescription.setText(description.substring(0, 1).toUpperCase() + description.substring(1));
+        textViewDescription.setText(description != null ? description.substring(0, 1).toUpperCase() + description.substring(1): "--");
         textViewHumidity.setText("Nem: " + humidity + "%");
         textViewWindSpeed.setText((String.format(Locale.getDefault(), "Rüzgar hızı: %.0f km/s", windSpeed)));
-        textViewFeelsLike.setText("Hissedilen: " + String.format("%.1f°C", feelsLike));
         textViewPressure.setText("Basınç: " + pressure + " hPa");
+        if(winddirection==0) textViewFeelsLike.setText("Kuzey → Güney");
+        else if(winddirection==90) textViewFeelsLike.setText("Doğu → Batı ");
+        else if(winddirection==180) textViewFeelsLike.setText("Güney → Kuzey");
+        else if(winddirection==270) textViewFeelsLike.setText("Batı → Doğu");
+        else if(winddirection>0 && winddirection<90) textViewFeelsLike.setText("KuzeyDoğu → GüneyBatı");
+        else if(winddirection>=90 && winddirection<180) textViewFeelsLike.setText("GüneyDoğu → KuzeyBatı");
+        else if(winddirection>=180 && winddirection<270) textViewFeelsLike.setText("GüneyBatı → KuzeyDoğu");
+        else if(winddirection>=270 && winddirection<360) textViewFeelsLike.setText("KuzeyBatı → GüneyDoğu");
+        windDirect.setRotation(winddirection+180);
+
+        long lastUpdate = preferencesManager.getLastUpdateTime();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
+        String updateTime = sdf.format(new Date(lastUpdate));
+        textViewLastUpdate.setText("Son güncelleme: " + updateTime);
 
         // Hava durumu ikonunu ayarlama
-        setWeatherIcon(icon);
+        if(icon != null) setWeatherIcon(icon);
+
     }
 
     private void setWeatherIcon(String icon) {

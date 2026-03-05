@@ -9,6 +9,8 @@ public class PreferencesManager {
     public static final String PREF_NAME = "WeatherAppPrefs";
     private static final String KEY_CITY_NAME = "city_name";
     private static final String KEY_LAST_UPDATE = "last_update";
+    private static final String KEY_HOURLY_FORECAST_JSON = "hourly_forecast_json";
+    private static final String KEY_DAILY_FORECAST_JSON = "daily_forecast_json";
 
     private SharedPreferences preferences;
     private Context context;
@@ -67,35 +69,19 @@ public class PreferencesManager {
         }
     }
 
-    public boolean shouldUpdate() {
+
+
+
+    public float getWindDegree() {
         try {
-            long lastUpdate = getLastUpdateTime();
-            if (lastUpdate == 0) {
-                Log.d(TAG, "shouldUpdate: true (never updated)");
-                return true;
-            }
-            long currentTime = System.currentTimeMillis();
-            long twelveHours = 12*60* 60 * 1000;
-            boolean shouldUpdate = (currentTime - lastUpdate) >= twelveHours;
-            Log.d(TAG, "shouldUpdate: " + shouldUpdate);
-            return shouldUpdate;
+            float deg = preferences.getFloat("WindDegree", 0);
+            Log.d(TAG, "getWindDegree: " + deg);
+            return deg;
         } catch (Exception e) {
-            Log.e(TAG, "shouldUpdate error: " + e.getMessage());
-            return true;
+            Log.e(TAG, "getWindDegree error: " + e.getMessage());
+            return 0;
         }
     }
-
-    public void clearAll() {
-        try {
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.clear();
-            editor.commit();
-            Log.d(TAG, "All preferences cleared");
-        } catch (Exception e) {
-            Log.e(TAG, "clearAll error: " + e.getMessage());
-        }
-    }
-
     public double getTemp() {
         try {
             double temp = preferences.getLong("temp", 0);
@@ -175,7 +161,7 @@ public class PreferencesManager {
 
     public void saveWeatherData(String city, double temp, String desc,
                                 int humidity, double wind,
-                                double feels, int pressure, String icon) {
+                                double feels, int pressure, String icon,float windDegree) {
         try {
             SharedPreferences.Editor editor = preferences.edit();
             editor.putString("city", city);
@@ -186,10 +172,52 @@ public class PreferencesManager {
             editor.putLong("feels", (long) feels);
             editor.putInt("pressure", pressure);
             editor.putString("icon", icon);
+            editor.putFloat("WindDegree",windDegree);
             editor.commit();
             Log.d(TAG, "Weather data saved: " + city + ", temp=" + temp + ", desc=" + desc);
         } catch (Exception e) {
             Log.e(TAG, "saveWeatherData error: " + e.getMessage());
+        }
+    }
+    public void clearAll()
+    {
+        SharedPreferences.Editor editor=preferences.edit();
+        editor.clear();
+        editor.commit();
+    }
+    public void saveHourlyForecastJson(String json) {
+        try {
+            preferences.edit().putString(KEY_HOURLY_FORECAST_JSON, json).commit();
+            Log.d(TAG, "Hourly forecast saved");
+        } catch (Exception e) {
+            Log.e(TAG, "saveHourlyForecastJson error: " + e.getMessage());
+        }
+    }
+
+    public void saveDailyForecastJson(String json) {
+        try {
+            preferences.edit().putString(KEY_DAILY_FORECAST_JSON, json).commit();
+            Log.d(TAG, "Daily forecast saved");
+        } catch (Exception e) {
+            Log.e(TAG, "saveDailyForecastJson error: " + e.getMessage());
+        }
+    }
+
+    public String getHourlyForecastJson() {
+        try {
+            return preferences.getString(KEY_HOURLY_FORECAST_JSON, null);
+        } catch (Exception e) {
+            Log.e(TAG, "getHourlyForecastJson error: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public String getDailyForecastJson() {
+        try {
+            return preferences.getString(KEY_DAILY_FORECAST_JSON, null);
+        } catch (Exception e) {
+            Log.e(TAG, "getDailyForecastJson error: " + e.getMessage());
+            return null;
         }
     }
 }

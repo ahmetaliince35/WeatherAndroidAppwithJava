@@ -20,6 +20,7 @@ import androidx.work.WorkerParameters;
 
 import java.util.List;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -50,10 +51,6 @@ public class WeatherUpdater extends Worker {
             Log.e(TAG, "Kayıtlı şehir yok, worker başarısız");
             return Result.failure();
         }
-        if(!prefsManager.shouldUpdate())
-        {
-            return Result.success();
-        }
         try {
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
@@ -81,8 +78,18 @@ public class WeatherUpdater extends Worker {
                     data.wind.speed * 3.6,
                     data.main.feels_like,
                     data.main.pressure,
-                    data.weather.get(0).icon
+                    data.weather.get(0).icon,
+                    data.wind.deg
             );
+            Response<ResponseBody> hourlyResponse = service.getForecast(cityName, API_KEY, "metric", "tr", 24).execute();
+            if (hourlyResponse.isSuccessful() && hourlyResponse.body() != null) {
+                prefsManager.saveHourlyForecastJson(hourlyResponse.body().string());
+            }
+
+            Response<ResponseBody> dailyResponse = service.getForecast(cityName, API_KEY, "metric", "tr", 40).execute();
+            if (dailyResponse.isSuccessful() && dailyResponse.body() != null) {
+                prefsManager.saveDailyForecastJson(dailyResponse.body().string());
+            }
             prefsManager.updateLastUpdateTime();
             Log.d(TAG, "Preferences güncellendi");
 
@@ -111,6 +118,14 @@ public class WeatherUpdater extends Worker {
                 @Query("units") String units,
                 @Query("lang") String lang
         );
+        @GET("forecast")
+        Call<ResponseBody> getForecast(
+                @Query("q") String city,
+                @Query("appid") String apiKey,
+                @Query("units") String units,
+                @Query("lang") String lang,
+                @Query("cnt") int count
+        );
     }
 
     public static class WeatherResponse {
@@ -133,6 +148,7 @@ public class WeatherUpdater extends Worker {
 
         public static class Wind {
             public double speed;
+            public float deg;
         }
     }
 
@@ -152,29 +168,6 @@ public class WeatherUpdater extends Worker {
         );
 
         int iconResource = getWeatherIcon(iconCode);
-String emoji ;
-switch (iconCode)
-{
-    case "01d":
-    case "01n":
-        emoji="☀️";
-    case "02d":
-    case "02n":
-        emoji= "⛅";
-    case "09d":
-    case "09n":
-    case"10d":
-    case"10n":
-            emoji= "🌧️";
-    case "11d":
-    case"11n":
-        emoji= "⛈️";
-    case "13d":
-    case "13n":
-            emoji="❄️";
-    default:
-        emoji="☀️";
-};
         if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
 
@@ -188,7 +181,7 @@ switch (iconCode)
         notificationLayout.setImageViewResource(R.id.ivWeatherIcon, getWeatherIcon(iconCode));
 
         Notification notification = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(iconResource) // küçük ikon zorunlu, sadece sistemde gösterilir
+                .setSmallIcon(iconResource)
                 .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomContentView(notificationLayout)
                 .setAutoCancel(true)

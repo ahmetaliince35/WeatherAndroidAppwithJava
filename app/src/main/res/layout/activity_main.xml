@@ -63,33 +63,42 @@
 <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal">
-        <!-- Mevcut Konum Butonu -->
-        <Button
-            android:id="@+id/buttonCurrentLocation"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Mevcut Konum"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:backgroundTint="#9C27B0"
-            android:padding="12dp"
-            android:layout_marginBottom="20dp"
-            app:cornerRadius="10dp"/>
-        <Button
-            android:id="@+id/buttonSearchLocation"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Özel Konum"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:backgroundTint="#9C27B0"
-            android:layout_marginBottom="20dp"
-            android:padding="12dp"
-            android:enabled="false"
-            app:cornerRadius="10dp"/>
+    android:orientation="horizontal"
+    android:layout_marginBottom="20dp"
+    android:gravity="center">
+
+    <!-- Mevcut Konum Butonu -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonCurrentLocation"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Mevcut Konum"
+        android:textColor="#1E3A5F"
+        android:textSize="14sp"
+        android:background="@drawable/buttons_background"
+        app:rippleColor="@android:color/transparent"
+        android:padding="12dp"
+        android:layout_marginEnd="8dp"
+        android:fontFamily="sans-serif-medium"
+        app:cornerRadius="15dp"/>
+
+    <!-- Özel Konum Butonu -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonClearAll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Verileri Temizle"
+        android:textColor="#1E3A5F"
+        android:textSize="14sp"
+        android:background="@drawable/buttons_background"
+        app:rippleColor="@android:color/transparent"
+        android:padding="12dp"
+        android:layout_marginStart="8dp"
+        android:enabled="true"
+        android:fontFamily="sans-serif-medium"
+        app:cornerRadius="15dp"/>
     </LinearLayout>
         <!-- Hava Durumu Bilgi Kartı -->
         <androidx.cardview.widget.CardView
@@ -127,8 +136,7 @@
                     android:text="Son güncelleme: --"
                     android:textSize="11sp"
                     android:textColor="#999999"
-                    android:layout_marginBottom="15dp"
-                    android:visibility="gone"/>
+                    android:layout_marginBottom="15dp" />
 
                 <!-- Hava İkonu -->
                 <ImageView
@@ -195,6 +203,64 @@
                                 android:textSize="13sp"
                                 android:textColor="#666666"/>
                         </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="📊"
+                                android:textSize="30sp"
+                                android:layout_marginBottom="8dp"/>
+
+                            <TextView
+                                android:id="@+id/textViewPressure"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Basınç: -- hPa"
+                                android:textSize="13sp"
+                                android:textColor="#666666"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- İkinci Satır -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center">
+
+                        <!-- Hissedilen Sıcaklık -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:id="@+id/imageViewWindTurbine"
+                                android:layout_width="48dp"
+                                android:rotation="0"
+                                android:scaleType="centerInside"
+                                android:layout_height="48dp"
+                                android:src="@drawable/winddirection"
+                                android:layout_margin="8dp"/>
+
+                            <TextView
+                                android:id="@+id/textViewFeelsLike"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Ruzgar Yönü: Kuzey"
+                                android:textSize="13sp"
+                                android:textColor="#666666"/>
+                        </LinearLayout>
 
                         <!-- Rüzgar Hızı -->
                         <LinearLayout
@@ -218,63 +284,7 @@
                                 android:textSize="13sp"
                                 android:textColor="#666666"/>
                         </LinearLayout>
-                    </LinearLayout>
 
-                    <!-- İkinci Satır -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center">
-
-                        <!-- Hissedilen Sıcaklık -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="center">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="🌡️"
-                                android:textSize="30sp"
-                                android:layout_marginBottom="8dp"/>
-
-                            <TextView
-                                android:id="@+id/textViewFeelsLike"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Hissedilen: --°C"
-                                android:textSize="13sp"
-                                android:textColor="#666666"/>
-                        </LinearLayout>
-
-                        <!-- Basınç -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="center">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="📊"
-                                android:textSize="30sp"
-                                android:layout_marginBottom="8dp"/>
-
-                            <TextView
-                                android:id="@+id/textViewPressure"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Basınç: -- hPa"
-                                android:textSize="13sp"
-                                android:textColor="#666666"/>
-                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
@@ -301,7 +311,7 @@
                 android:textColor="#1e3a5f"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:backgroundTint="#55ffffff"
+                android:background="@drawable/buttons_background"
                 android:padding="15dp"
                 android:enabled="false"
                 android:layout_marginEnd="8dp"
@@ -316,7 +326,7 @@
                 android:textColor="#1e3a5f"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:backgroundTint="#44FFFFFF"
+                android:background="@drawable/buttons_background"
                 android:padding="15dp"
                 android:enabled="false"
                 android:layout_marginStart="8dp"

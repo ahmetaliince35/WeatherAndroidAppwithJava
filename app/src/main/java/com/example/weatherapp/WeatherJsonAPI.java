@@ -2,8 +2,6 @@ package com.example.weatherapp;
 
 import android.content.Context;
 import android.util.Log;
-import android.widget.ProgressBar;
-
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -13,7 +11,6 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,9 +27,10 @@ public class WeatherJsonAPI {
     private static final String TAG="WeatherJsonAPI";
     private  final String BASE_URL;
     private final  RequestQueue requestQueue;
-
+    private Context context;
     public WeatherJsonAPI(Context context,String BASE_URL) {
-        requestQueue = Volley.newRequestQueue(context.getApplicationContext());
+        this.context=context.getApplicationContext();
+        requestQueue = Volley.newRequestQueue(context);
         this.BASE_URL=BASE_URL;
     }
 
@@ -47,6 +45,7 @@ public class WeatherJsonAPI {
 
         public String icon;
         public double windSpeed;
+        public float windDirection;
     }
 
     // Callback arayüzü
@@ -57,12 +56,12 @@ public class WeatherJsonAPI {
 
     // Saatlik veri callback arayüzü
     public interface HourlyCallback {
-        void onSuccess(List<ForecastItem> hourlyList);
+        void onSuccess(List<ForecastItem> hourlyList,String json);
         void onError(String error);
     }
 
     public interface ForecastCallback {
-        void onSuccess(List<ForecastItem> forecastList);
+        void onSuccess(List<ForecastItem> forecastList,String json);
         void onError(String error);
     }
 
@@ -70,7 +69,6 @@ public class WeatherJsonAPI {
     // Hava durumu verisini çek
     public void getWeather(String cityName, final WeatherCallback callback) {
         String url = BASE_URL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr";
-        Log.d(TAG,"anlık hava çalışyor");
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
                 url,
@@ -97,11 +95,11 @@ public class WeatherJsonAPI {
 
                             JSONObject wind = response.getJSONObject("wind");
                             data.windSpeed = wind.getDouble("speed");
-
+                            data.windDirection=(float) wind.getDouble("deg");
                             callback.onSuccess(data);
 
                         } catch (JSONException e) {
-                            callback.onError("Veri işlenirken hata oluştu");
+                            callback.onError(e.toString());
                         }
                     }
                 },
@@ -127,71 +125,24 @@ public class WeatherJsonAPI {
                     @Override
                     public void onResponse(JSONObject response) {
                         try {
-                            JSONArray list = response.getJSONArray("list");
-                            List<ForecastItem> hourlyList = new ArrayList<>();
+                            List<ForecastItem> hourlyList = parseHourlyForecast(response);
+                            new PreferencesManager(context).saveHourlyForecastJson(response.toString());
 
-                            for (int i = 0; i < list.length(); i++) {
-                                JSONObject hourData = list.getJSONObject(i);
 
-                                long timestamp = hourData.getLong("dt");
-                                String dateHour = formatDate(timestamp); // formatDate metodunu MainActivity’den ya da statik olarak ekle
-
-                                JSONObject main = hourData.getJSONObject("main");
-                                double temp = main.getDouble("temp");
-                                int humidity = main.getInt("humidity");
-                                double tempMin = main.getDouble("temp_min");
-                                double tempMax = main.getDouble("temp_max");
-
-                                JSONObject weather = hourData.getJSONArray("weather").getJSONObject(0);
-                                String description = weather.getString("description");
-                                String icon = weather.getString("icon");
-
-                                JSONObject wind = hourData.getJSONObject("wind");
-                                double windSpeed = wind.getDouble("speed");
-
-                                double rain = 0;
-                                if (hourData.has("rain")) {
-                                    JSONObject rainObj = hourData.getJSONObject("rain");
-                                    rain = rainObj.optDouble("3h", 0);
-                                }
-                                if (hourData.has("snow")) {
-                                    JSONObject snowObj = hourData.getJSONObject("snow");
-                                    rain = snowObj.optDouble("3h", 0);
-                                }
-
-                                double rainProb = hourData.optDouble("pop", 0) * 100;
-
-                                ForecastItem forecastItem = new ForecastItem(
-                                        dateHour,
-                                        temp,
-                                        description,
-                                        icon,
-                                        humidity,
-                                        rainProb,
-                                        rain,
-                                        windSpeed * 3.6,
-                                        tempMin,
-                                        tempMax
-                                );
-
-                                hourlyList.add(forecastItem);
-                            }
-
-                            callback.onSuccess(hourlyList);
+                            callback.onSuccess(hourlyList,response.toString());
 
                         } catch (JSONException e) {
-                            callback.onError("Saatlik veri işlenirken hata oluştu");
+                                callback.onError("Saatlik veri işlenirken hata oluştu");
                         }
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        callback.onError("Saatlik veri alınamadı");
+                            callback.onError("Saatlik veri alınamadı");
                     }
                 }
         );
-
         requestQueue.add(request);
     }
 
@@ -208,9 +159,82 @@ public class WeatherJsonAPI {
                     @Override
                     public void onResponse(JSONObject response) {
                         try {
-                            JSONArray list = response.getJSONArray("list");
-                            List<ForecastItem> forecastList = new ArrayList<>();
+                            List<ForecastItem> forecastList = parseDailyForecast(response);
+                            callback.onSuccess(forecastList,response.toString());
 
+
+                        } catch (JSONException e) {
+                                callback.onError("Veri işlenirken hata oluştu");
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                            callback.onError("Tahmin verisi alınamadı");
+                    }
+                }
+        );
+
+        requestQueue.add(request);
+    }
+
+    private List<ForecastItem> parseHourlyForecast(JSONObject response) throws JSONException {
+        JSONArray list = response.getJSONArray("list");
+        List<ForecastItem> hourlyList = new ArrayList<>();
+
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject hourData = list.getJSONObject(i);
+
+            long timestamp = hourData.getLong("dt");
+            String dateHour = formatDate(timestamp);
+
+            JSONObject main = hourData.getJSONObject("main");
+            double temp = main.getDouble("temp");
+            int humidity = main.getInt("humidity");
+            double tempMin = main.getDouble("temp_min");
+            double tempMax = main.getDouble("temp_max");
+
+            JSONObject weather = hourData.getJSONArray("weather").getJSONObject(0);
+            String description = weather.getString("description");
+            String icon = weather.getString("icon");
+
+            JSONObject wind = hourData.getJSONObject("wind");
+            double windSpeed = wind.getDouble("speed");
+
+            double rain = 0;
+            if (hourData.has("rain")) {
+                JSONObject rainObj = hourData.getJSONObject("rain");
+                rain = rainObj.optDouble("3h", 0);
+            }
+            if (hourData.has("snow")) {
+                JSONObject snowObj = hourData.getJSONObject("snow");
+                rain = snowObj.optDouble("3h", 0);
+            }
+
+            double rainProb = hourData.optDouble("pop", 0) * 100;
+
+            ForecastItem forecastItem = new ForecastItem(
+                    dateHour,
+                    temp,
+                    description,
+                    icon,
+                    humidity,
+                    rainProb,
+                    rain,
+                    windSpeed * 3.6,
+                    tempMin,
+                    tempMax
+            );
+
+            hourlyList.add(forecastItem);
+        }
+        return hourlyList;
+    }
+
+    private List<ForecastItem> parseDailyForecast(JSONObject response) throws JSONException {
+        JSONArray list = response.getJSONArray("list");
+        List<ForecastItem> forecastList = new ArrayList<>();
                             // Bugünün timestamp'i (UTC)
                             Calendar today = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                             today.set(Calendar.HOUR_OF_DAY, 0);
@@ -295,24 +319,30 @@ public class WeatherJsonAPI {
                                 if (forecastList.size() >= 5) break; // sadece 5 gün
                             }
 
-                            callback.onSuccess(forecastList);
-
-                        } catch (JSONException e) {
-                            callback.onError("Veri işlenirken hata oluştu");
-                        }
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        callback.onError("Tahmin verisi alınamadı");
-                    }
-                }
-        );
-
-        requestQueue.add(request);
+return forecastList;
     }
 
+    public List<ForecastItem> getCachedHourlyForecast() {
+        try {
+            String cached = new PreferencesManager(context).getHourlyForecastJson();
+            if (cached == null || cached.isEmpty()) return null;
+            return parseHourlyForecast(new JSONObject(cached));
+        } catch (Exception e) {
+            Log.e(TAG, "getCachedHourlyForecast error: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public List<ForecastItem> getCachedDailyForecast() {
+        try {
+            String cached = new PreferencesManager(context).getDailyForecastJson();
+            if (cached == null || cached.isEmpty()) return null;
+            return parseDailyForecast(new JSONObject(cached));
+        } catch (Exception e) {
+            Log.e(TAG, "getCachedDailyForecast error: " + e.getMessage());
+            return null;
+        }
+    }
 
     private String formatDate(long timestamp) {
         Date date = new Date(timestamp * 1000);
