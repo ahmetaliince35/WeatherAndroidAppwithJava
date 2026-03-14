@@ -39,7 +39,7 @@
                 android:orientation="horizontal"
                 android:padding="10dp">
 
-                <EditText
+                <AutoCompleteTextView
                     android:id="@+id/editTextCity"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -48,6 +48,7 @@
                     android:inputType="text"
                     android:padding="12dp"
                     android:textSize="16sp"
+                    android:completionThreshold="1"
                     android:background="@android:color/transparent"/>
 
                 <Button

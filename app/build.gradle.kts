@@ -53,7 +53,8 @@ dependencies {
     implementation(libs.workmanager)
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
-
+    implementation(libs.room.runtime)
+    annotationProcessor(libs.room.compile)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

@@ -1,4 +1,4 @@
-/*package com.example.weatherapp.data;
+package com.example.weatherapp.data;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
@@ -12,12 +12,12 @@ import androidx.room.PrimaryKey;
 public class CityEntity {
 
     @PrimaryKey
+    @NonNull
     public int id;
 
     @NonNull
     public String name;
 
+
     public String country;
-    public double lat;
-    public double lon;
-}*/
+}

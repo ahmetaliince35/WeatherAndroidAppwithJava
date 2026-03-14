@@ -8,8 +8,12 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -22,6 +26,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.room.Room;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
@@ -32,16 +37,22 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.weatherapp.data.AppDatabase;
+import com.example.weatherapp.data.CityEntity;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity
 {
-    private EditText editTextCity;
+    private AutoCompleteTextView editTextCity;
     private Button buttonSearch;
     private Button buttonForecast;
     private Button buttonCurrentLocation;
@@ -67,7 +78,7 @@ public class MainActivity extends AppCompatActivity
     private PreferencesManager preferencesManager;
     private WeatherJsonAPI.WeatherData tempData;
     private ActivityResultLauncher<String> notificationPermissionLauncher;
-
+private AppDatabase db;
     private static final int Location_Permission_Request=100;
     private static final  String TAG="Main Activity";
 
@@ -75,13 +86,15 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        db= Room.databaseBuilder(getApplicationContext(),
+                AppDatabase.class,"weather_db.db")
+                .createFromAsset("weather.db").build();
         locationGetter=new LocationGetter(this);
         preferencesManager=new PreferencesManager(this);
         initViews();
 
         setupAutoUpdate();
-
+        setupAutoComplete();
         loadSavedWeather();
 
         buttonClicked();
@@ -110,6 +123,32 @@ public class MainActivity extends AppCompatActivity
         }
 
     }
+    private void initViews()
+    {
+        editTextCity = findViewById(R.id.editTextCity);
+
+        buttonSearch = findViewById(R.id.buttonSearch);
+        buttonForecast = findViewById(R.id.buttonForecast);
+        buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
+        buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
+        buttonClearAll=findViewById(R.id.buttonClearAll);
+
+        textViewCityName = findViewById(R.id.textViewCityName);
+        textViewTemperature = findViewById(R.id.textViewTemperature);
+        textViewDescription = findViewById(R.id.textViewDescription);
+        textViewHumidity = findViewById(R.id.textViewHumidity);
+        textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
+        textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
+        textViewPressure = findViewById(R.id.textViewPressure);
+        textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
+        windDirect=findViewById(R.id.imageViewWindTurbine);
+        imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
+
+        root = findViewById(R.id.rootScroll);
+
+
+    }
+
     private void buttonClicked() {
         buttonSearch.setOnClickListener(new View.OnClickListener() {
         @Override
@@ -187,31 +226,54 @@ public class MainActivity extends AppCompatActivity
             }
         });
     }
-
-private void initViews()
+    private void setupAutoComplete()
     {
-        editTextCity = findViewById(R.id.editTextCity);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
+        editTextCity.setAdapter(adapter);
+        editTextCity.setOnItemClickListener((parent, view, position, id) -> {
+           String selected=adapter.getItem(position);
+            adapter.clear();
+            adapter.notifyDataSetChanged();
+            editTextCity.setText(selected.split(",")[0]);
+            editTextCity.dismissDropDown();
+        });
+        editTextCity.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-        buttonSearch = findViewById(R.id.buttonSearch);
-        buttonForecast = findViewById(R.id.buttonForecast);
-        buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
-        buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
-        buttonClearAll=findViewById(R.id.buttonClearAll);
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                final String input = s.toString();
+                Executors.newSingleThreadExecutor().execute(() -> {
+                    List<CityEntity> cities;
+                    if (!input.isEmpty()) {
+                        cities = db.cityDao().getCitiesStartingWith(input);
+                    } else {
+                        cities = new ArrayList<>();
+                    }
 
-        textViewCityName = findViewById(R.id.textViewCityName);
-        textViewTemperature = findViewById(R.id.textViewTemperature);
-        textViewDescription = findViewById(R.id.textViewDescription);
-        textViewHumidity = findViewById(R.id.textViewHumidity);
-        textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
-        textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
-        textViewPressure = findViewById(R.id.textViewPressure);
-        textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
-        windDirect=findViewById(R.id.imageViewWindTurbine);
-        imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
+                    List<String> cityNames = new ArrayList<>();
+                    for (CityEntity c : cities)
+                    {
+                        Locale locale=new Locale("",c.country);
+                        String countryName=locale.getDisplayCountry();
+                        cityNames.add(c.name+ " , " +countryName);
+                    }
 
-        root = findViewById(R.id.rootScroll);
+                    runOnUiThread(() -> {
+                        adapter.clear();
+                        adapter.addAll(cityNames);
+                        adapter.notifyDataSetChanged();
+                        editTextCity.showDropDown();
+                    });
 
+                });
+            }
 
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
     }
 
     private void getPermission()
@@ -343,7 +405,7 @@ private void initViews()
     private void setupAutoUpdate() {
         PeriodicWorkRequest weatherUpdateRequest = new PeriodicWorkRequest.Builder(
                 WeatherUpdater.class,
-                1,
+                12,
                 TimeUnit.HOURS
         ).build();
 
