@@ -45,7 +45,7 @@ public class WeatherUpdater extends Worker {
     public Result doWork() {
         Log.d(TAG, "Worker başlatıldı");
 
-        PreferencesManager prefsManager = new PreferencesManager(getApplicationContext());
+        PreferencesManager prefsManager = PreferencesManager.getInstance(getApplicationContext());
         String cityName = prefsManager.getSavedCityName();
         if (cityName == null || cityName.isEmpty()) {
             Log.e(TAG, "Kayıtlı şehir yok, worker başarısız");

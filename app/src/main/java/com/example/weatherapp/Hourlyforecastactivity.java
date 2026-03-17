@@ -10,21 +10,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.text.SimpleDateFormat;
+import com.example.weatherapp.Helpers.WeatherJsonAPI;
+
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class Hourlyforecastactivity extends AppCompatActivity {
 
@@ -37,7 +27,7 @@ public class Hourlyforecastactivity extends AppCompatActivity {
     private boolean isSaveLocation;
     private String cityName;
     private LinearLayout root;
-
+PreferencesManager preferencesManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,7 +37,7 @@ public class Hourlyforecastactivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("5 Günlük Tahmin");
         }
-
+preferencesManager=PreferencesManager.getInstance(this);
         recyclerViewHourly = findViewById(R.id.recyclerViewHourly);
         progressBar = findViewById(R.id.progressBar);
         textViewTitle = findViewById(R.id.textViewTitle);
@@ -55,7 +45,7 @@ public class Hourlyforecastactivity extends AppCompatActivity {
         // Intent'ten şehir adını al
         cityName = getIntent().getStringExtra("CITY_NAME");
         if (TextUtils.isEmpty(cityName)) {
-            cityName = new PreferencesManager(this).getSavedCityName();
+            cityName = preferencesManager.getSavedCityName();
         }
         int bgRes = getIntent().getIntExtra("background-res",R.drawable.background);
         isNewSearch=getIntent().getBooleanExtra("isNewSearch",false);
@@ -67,7 +57,6 @@ public class Hourlyforecastactivity extends AppCompatActivity {
             return;
         }
 
-        // View'ları bağla
 
         // Başlığı ayarla
         textViewTitle.setText(cityName + " - 72 Saatlik Tahmin");
@@ -102,7 +91,7 @@ public class Hourlyforecastactivity extends AppCompatActivity {
                     hourlyList.clear();             // Adapter’in kullandığı listeyi temizle
                     hourlyList.addAll(newHourlyList); // Yeni verileri ekle
                     adapter.notifyDataSetChanged(); // RecyclerView’i güncelle
-                    if(isSaveLocation)new PreferencesManager(getApplicationContext()).saveHourlyForecastJson(json);
+                    if(isSaveLocation) preferencesManager.saveHourlyForecastJson(json);
                 }
 
                 @Override

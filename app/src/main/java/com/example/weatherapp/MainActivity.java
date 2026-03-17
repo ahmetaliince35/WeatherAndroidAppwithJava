@@ -3,11 +3,9 @@ package com.example.weatherapp;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -15,7 +13,6 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -28,20 +25,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.room.Room;
 import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
+
+import com.example.weatherapp.Helpers.AutoUpdateConfig;
+import com.example.weatherapp.Helpers.CitySearchDB;
+import com.example.weatherapp.Helpers.UIUpdate;
+import com.example.weatherapp.Helpers.WeatherJsonAPI;
 import com.example.weatherapp.data.AppDatabase;
 import com.example.weatherapp.data.CityEntity;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -90,15 +82,13 @@ private AppDatabase db;
                 AppDatabase.class,"weather_db.db")
                 .createFromAsset("weather.db").build();
         locationGetter=new LocationGetter(this);
-        preferencesManager=new PreferencesManager(this);
+        preferencesManager=PreferencesManager.getInstance(this);
         initViews();
 
-        setupAutoUpdate();
+        AutoUpdateConfig.setupAutoUpdate(getApplicationContext());
         setupAutoComplete();
         loadSavedWeather();
-
         buttonClicked();
-
         notificationSettings();
     }
 
@@ -232,7 +222,7 @@ private AppDatabase db;
                 android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
         editTextCity.setAdapter(adapter);
         editTextCity.setOnItemClickListener((parent, view, position, id) -> {
-           String selected=adapter.getItem(position);
+            String selected=adapter.getItem(position);
             adapter.clear();
             adapter.notifyDataSetChanged();
             editTextCity.setText(selected.split(",")[0]);
@@ -246,35 +236,20 @@ private AppDatabase db;
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 final String input = s.toString();
                 Executors.newSingleThreadExecutor().execute(() -> {
-                    List<CityEntity> cities;
-                    if (!input.isEmpty()) {
-                        cities = db.cityDao().getCitiesStartingWith(input);
-                    } else {
-                        cities = new ArrayList<>();
-                    }
-
-                    List<String> cityNames = new ArrayList<>();
-                    for (CityEntity c : cities)
-                    {
-                        Locale locale=new Locale("",c.country);
-                        String countryName=locale.getDisplayCountry();
-                        cityNames.add(c.name+ " , " +countryName);
-                    }
-
+                    List<String> cityNames=CitySearchDB.GetCityList(input,db);
                     runOnUiThread(() -> {
                         adapter.clear();
                         adapter.addAll(cityNames);
                         adapter.notifyDataSetChanged();
                         editTextCity.showDropDown();
                     });
-
                 });
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         });
     }
+
 
     private void getPermission()
     {
@@ -399,36 +374,7 @@ private AppDatabase db;
     }
 
 
-    /**
-     * Otomatik güncellemeyi ayarla (günde 2 kere: 08:00 ve 20:00)
-     */
-    private void setupAutoUpdate() {
-        PeriodicWorkRequest weatherUpdateRequest = new PeriodicWorkRequest.Builder(
-                WeatherUpdater.class,
-                12,
-                TimeUnit.HOURS
-        ).build();
 
-        // WorkManager ile görevi planla
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                "WeatherAutoUpdate",
-                ExistingPeriodicWorkPolicy.KEEP, // Varsa devam ettir
-                weatherUpdateRequest
-        );
-
-    }
-    //Worker a ait görevleri denemek için oluşturuldu
-    /*public void setupAutoUpdateNow() {
-        // Worker için OneTimeWorkRequest oluştur
-        OneTimeWorkRequest weatherWorkRequest = new OneTimeWorkRequest.Builder(WeatherUpdater.class)
-                .build();
-
-        // Worker'ı kuyruğa ekle
-        WorkManager.getInstance(this)
-                .enqueue(weatherWorkRequest);
-
-        Log.d("WeatherWorkerLauncher", "WeatherWorker kuyruğa eklendi");
-    }*/
     private void requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -485,87 +431,17 @@ private AppDatabase db;
         textViewLastUpdate.setText("Son güncelleme: " + updateTime);
 
         // Hava durumu ikonunu ayarlama
-        if(icon != null) setWeatherIcon(icon);
+        if(icon != null) setWeatherIcon(icon,description);
 
     }
 
-    private void setWeatherIcon(String icon) {
+    private void setWeatherIcon(String icon,String description) {
         // İkon koduna göre drawable kaynak ayarlama
-        int iconResource;
-        switch (icon) {
-            case "01d":
-                iconResource = R.drawable.icon_sunny;
-                break;
-            case "01n":
-                iconResource=R.drawable.icon_moon;
-            case "02d":
-            case "03d":
-                iconResource = R.drawable.icon_partlycloudy;
-                break;
-            case "02n":
-            case "03n":
-                iconResource=R.drawable.icon_partlycloudy_night;
-            case "04d":
-            case "04n":
-                iconResource = R.drawable.icon_cloudy;
-                break;
-            case "09d":
-            case "09n":
-            case "10d":
-            case "10n":
-                iconResource = R.drawable.icon_rainy;
-                break;
-            case "11d":
-            case "11n":
-                iconResource = R.drawable.icon_thunderstorm;
-                break;
-            case "13d":
-            case "13n":
-                iconResource = R.drawable.icon_snowy;
-                break;
-            default:
-                iconResource = R.drawable.icon_sunny;
-                break;
-        }
+        int iconResource= UIUpdate.setWeatherIcon(icon,description);
         imageViewWeatherIcon.setImageResource(iconResource);
     }
     private void updateBackgroundByWeather(String iconCode) {
-        int backgroundRes;
-
-        if (iconCode.startsWith("01")) {
-            backgroundRes = iconCode.endsWith("d")
-                    ? R.drawable.sun
-                    : R.drawable.moon;
-
-        }
-        else if (iconCode.startsWith("02") || iconCode.startsWith("03"))
-        {
-            backgroundRes=R.drawable.partlycloud;
-        }
-        else if (iconCode.startsWith("04"))
-        {
-            backgroundRes = R.drawable.very_cloud;
-
-        }
-        else if (iconCode.startsWith("09") || iconCode.startsWith("10"))
-        {
-            backgroundRes = R.drawable.rain;
-
-        }
-        else if(iconCode.startsWith("11"))
-        {
-                backgroundRes= R.drawable.thunder;
-
-        }
-        else if (iconCode.startsWith("13"))
-        {
-            backgroundRes = R.drawable.snow;
-
-        }
-        else
-        {
-            backgroundRes = R.drawable.sun;
-        }
+     int backgroundRes= UIUpdate.updateBackgroundByWeather(iconCode);
             currentbackround=backgroundRes;
             root.setBackgroundResource(currentbackround);
     }

@@ -1,4 +1,4 @@
-package com.example.weatherapp;
+package com.example.weatherapp.Helpers;
 
 import android.content.Context;
 import android.util.Log;
@@ -8,6 +8,10 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.weatherapp.ForecastItem;
+import com.example.weatherapp.PreferencesManager;
+import com.example.weatherapp.URL_API;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,10 +32,12 @@ public class WeatherJsonAPI {
     private  final String BASE_URL;
     private final  RequestQueue requestQueue;
     private Context context;
+    PreferencesManager preferencesManager;
     public WeatherJsonAPI(Context context,String BASE_URL) {
         this.context=context.getApplicationContext();
         requestQueue = Volley.newRequestQueue(context);
         this.BASE_URL=BASE_URL;
+        preferencesManager=PreferencesManager.getInstance(context.getApplicationContext());
     }
 
     // Basit veri sınıfı: sadece çekilen değerleri tutacak
@@ -56,7 +62,7 @@ public class WeatherJsonAPI {
 
     // Saatlik veri callback arayüzü
     public interface HourlyCallback {
-        void onSuccess(List<ForecastItem> hourlyList,String json);
+        void onSuccess(List<ForecastItem> hourlyList, String json);
         void onError(String error);
     }
 
@@ -126,7 +132,7 @@ public class WeatherJsonAPI {
                     public void onResponse(JSONObject response) {
                         try {
                             List<ForecastItem> hourlyList = parseHourlyForecast(response);
-                            new PreferencesManager(context).saveHourlyForecastJson(response.toString());
+                            preferencesManager.saveHourlyForecastJson(response.toString());
 
 
                             callback.onSuccess(hourlyList,response.toString());
@@ -324,7 +330,7 @@ return forecastList;
 
     public List<ForecastItem> getCachedHourlyForecast() {
         try {
-            String cached = new PreferencesManager(context).getHourlyForecastJson();
+            String cached = preferencesManager.getHourlyForecastJson();
             if (cached == null || cached.isEmpty()) return null;
             return parseHourlyForecast(new JSONObject(cached));
         } catch (Exception e) {
@@ -335,7 +341,7 @@ return forecastList;
 
     public List<ForecastItem> getCachedDailyForecast() {
         try {
-            String cached = new PreferencesManager(context).getDailyForecastJson();
+            String cached = preferencesManager.getDailyForecastJson();
             if (cached == null || cached.isEmpty()) return null;
             return parseDailyForecast(new JSONObject(cached));
         } catch (Exception e) {

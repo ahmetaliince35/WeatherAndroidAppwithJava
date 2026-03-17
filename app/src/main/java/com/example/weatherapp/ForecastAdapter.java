@@ -9,6 +9,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.weatherapp.Helpers.UIUpdate;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -80,58 +83,7 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
     }
 
     public void setWeatherIcon(ImageView imageView, String icon,String description) {
-        int iconResource;
-        switch (icon) {
-            case "01d":
-                iconResource = R.drawable.icon_sunny;
-                break;
-            case "01n":
-                iconResource=R.drawable.icon_moon;
-                break;
-            case "02d":
-            case "03d":
-                iconResource = R.drawable.icon_partlycloudy;
-                break;
-            case "02n":
-            case "03n":
-                iconResource=R.drawable.icon_partlycloudy_night;
-                break;
-            case "04d":
-                if(description.contains("parçalı"))
-                {
-                    iconResource=R.drawable.icon_partlycloudy;
-                }
-                else {
-                    iconResource = R.drawable.icon_cloudy;
-                }
-                break;
-            case "04n":
-                if(description.contains("parçalı"))
-                {
-                    iconResource=R.drawable.icon_partlycloudy_night;
-                }
-                else {
-                    iconResource = R.drawable.icon_cloudy;
-                }
-                break;
-            case "09d":
-            case "09n":
-            case "10d":
-            case "10n":
-                iconResource = R.drawable.icon_rainy;
-                break;
-            case "11d":
-            case "11n":
-                iconResource = R.drawable.icon_thunderstorm;
-                break;
-            case "13d":
-            case "13n":
-                iconResource = R.drawable.icon_snowy;
-                break;
-            default:
-                iconResource = R.drawable.icon_sunny;
-                break;
-        }
+        int iconResource=UIUpdate.setWeatherIcon(icon,description);
         imageView.setImageResource(iconResource);
     }
 

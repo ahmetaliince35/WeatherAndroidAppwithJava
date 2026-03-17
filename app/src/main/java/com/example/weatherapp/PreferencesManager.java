@@ -11,16 +11,21 @@ public class PreferencesManager {
     private static final String KEY_LAST_UPDATE = "last_update";
     private static final String KEY_HOURLY_FORECAST_JSON = "hourly_forecast_json";
     private static final String KEY_DAILY_FORECAST_JSON = "daily_forecast_json";
-
+    private static PreferencesManager instance;
     private SharedPreferences preferences;
-    private Context context;
 
-    public PreferencesManager(Context context) {
-        this.context = context.getApplicationContext(); // Application context kullan
-        this.preferences = this.context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        Log.d(TAG, "PreferencesManager initialized");
+    private PreferencesManager(Context context) {
+        context.getApplicationContext()
+        .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
-
+public static synchronized PreferencesManager getInstance(Context context)
+{
+    if(instance == null)
+    {
+        instance = new PreferencesManager(context);
+    }
+    return instance;
+}
     public void saveLocation(String cityName) {
         try {
             SharedPreferences.Editor editor = preferences.edit();

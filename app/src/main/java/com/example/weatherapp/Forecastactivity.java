@@ -10,6 +10,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.weatherapp.Helpers.WeatherJsonAPI;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,7 +30,7 @@ public class Forecastactivity extends AppCompatActivity {
     private LinearLayout root;
     private boolean isNewSearch;
     private boolean isSaveLocation;
-
+    PreferencesManager preferencesManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,7 +41,7 @@ public class Forecastactivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("5 Günlük Tahmin");
         }
-
+        preferencesManager=PreferencesManager.getInstance(this);
         // View'ları bağlama
         textViewCityTitle = findViewById(R.id.textViewCityTitle);
         recyclerViewForecast = findViewById(R.id.recyclerViewForecast);
@@ -93,7 +95,7 @@ public class Forecastactivity extends AppCompatActivity {
                     forecastList.clear();             // Adapter’in kullandığı listeyi temizle
                     forecastList.addAll(newforecastList); // Yeni verileri ekle
                     adapter.notifyDataSetChanged(); // veya adapter.notifyDataSetChanged() ile güncelle
-                    if(isSaveLocation)new PreferencesManager(getApplicationContext()).saveDailyForecastJson(json);
+                    if(isSaveLocation) preferencesManager.saveDailyForecastJson(json);
                 }
 
                 @Override
