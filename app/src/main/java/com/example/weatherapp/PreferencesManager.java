@@ -15,8 +15,8 @@ public class PreferencesManager {
     private SharedPreferences preferences;
 
     private PreferencesManager(Context context) {
-        context.getApplicationContext()
-        .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    preferences=context.getApplicationContext()
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 public static synchronized PreferencesManager getInstance(Context context)
 {

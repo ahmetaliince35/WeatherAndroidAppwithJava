@@ -18,6 +18,8 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.example.weatherapp.Helpers.UIUpdate;
+
 import java.util.List;
 
 import okhttp3.ResponseBody;
@@ -167,7 +169,7 @@ public class WeatherUpdater extends Worker {
                 PendingIntent.FLAG_IMMUTABLE
         );
 
-        int iconResource = getWeatherIcon(iconCode);
+        int iconResource = getWeatherIcon(iconCode,description);
         if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
 
@@ -178,7 +180,7 @@ public class WeatherUpdater extends Worker {
         RemoteViews notificationLayout = new RemoteViews(getApplicationContext().getPackageName(), R.layout.notification);
         notificationLayout.setTextViewText(R.id.tvTitle, cityName + " - " + temperature);
         notificationLayout.setTextViewText(R.id.tvDescription, description.substring(0,1).toUpperCase()+description.substring(1));
-        notificationLayout.setImageViewResource(R.id.ivWeatherIcon, getWeatherIcon(iconCode));
+        notificationLayout.setImageViewResource(R.id.ivWeatherIcon, getWeatherIcon(iconCode,description));
 
         Notification notification = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(iconResource)
@@ -210,32 +212,8 @@ public class WeatherUpdater extends Worker {
         }
     }
 
-    private int getWeatherIcon(String iconCode) {
-        switch (iconCode) {
-            case "01d":
-            case "01n":
-                return R.drawable.icon_sunny;
-            case "02d":
-            case "02n":
-                return R.drawable.icon_partlycloudy;
-            case "03d":
-            case "03n":
-            case "04d":
-            case "04n":
-                return R.drawable.icon_cloudy;
-            case "09d":
-            case "09n":
-            case "10d":
-            case "10n":
-                return R.drawable.icon_rainy;
-            case "11d":
-            case "11n":
-                return R.drawable.icon_thunderstorm;
-            case "13d":
-            case "13n":
-                return R.drawable.icon_snowy;
-            default:
-                return R.drawable.icon_sunny;
-        }
+    private int getWeatherIcon(String iconCode,String description) {
+        int iconSource= UIUpdate.setWeatherIcon(iconCode,description);
+        return iconSource;
     }
 }

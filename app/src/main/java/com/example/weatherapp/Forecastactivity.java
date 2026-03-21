@@ -30,49 +30,52 @@ public class Forecastactivity extends AppCompatActivity {
     private LinearLayout root;
     private boolean isNewSearch;
     private boolean isSaveLocation;
+    private String cityName;
+    private String updateTime;
+    private int backGroundRes;
     PreferencesManager preferencesManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forecastactivity);
 
-        // ActionBar'da geri butonu
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("5 Günlük Tahmin");
-        }
+        String updateTime= LastUpdateTime();
+
+        recyclerViewForecast.setLayoutManager(new LinearLayoutManager(this));
+        forecastList = new ArrayList<>();
+        adapter = new ForecastAdapter(this, forecastList);
+        recyclerViewForecast.setAdapter(adapter);
+
+        textViewLastUpdate.setText("Son güncelleme: " + updateTime);
+        root.setBackgroundResource(backGroundRes);
+        textViewCityTitle.setText(cityName + " - 5 Günlük Tahmin");
+
+        initialVariables();
+        getIntents();
+        getForecastData(cityName,isNewSearch);
+    }
+    private void  initialVariables()
+    {
         preferencesManager=PreferencesManager.getInstance(this);
-        // View'ları bağlama
         textViewCityTitle = findViewById(R.id.textViewCityTitle);
         recyclerViewForecast = findViewById(R.id.recyclerViewForecast);
         textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
         progressBar = findViewById(R.id.progressBar);
         root = findViewById(R.id.root);
-        // RecyclerView kurulumu
-        recyclerViewForecast.setLayoutManager(new LinearLayoutManager(this));
-        forecastList = new ArrayList<>();
-        adapter = new ForecastAdapter(this, forecastList);
-        recyclerViewForecast.setAdapter(adapter);
-        long lastUpdate=System.currentTimeMillis();
-        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
-        String updateTime = sdf.format(new Date(lastUpdate));
-        textViewLastUpdate.setText("Son güncelleme: " + updateTime);
-        // Intent'ten şehir adını al
-        String cityName = getIntent().getStringExtra("CITY_NAME");
-        int bgRes = getIntent().getIntExtra("background-res", R.drawable.background);
+    }
+    private void  getIntents()
+    {
+        cityName = getIntent().getStringExtra("CITY_NAME");
+        backGroundRes = getIntent().getIntExtra("background-res", R.drawable.background);
         isNewSearch = getIntent().getBooleanExtra("isNewSearch",false);
         isSaveLocation=getIntent().getBooleanExtra("isSaveLocation",false);
-        root.setBackgroundResource(bgRes);
-        if (cityName != null) {
-            textViewCityTitle.setText(cityName + " - 5 Günlük Tahmin");
-            getForecastData(cityName,isNewSearch);
-        } else {
-            Toast.makeText(this, "Şehir bilgisi alınamadı", Toast.LENGTH_SHORT).show();
-            finish();
-        }
     }
-    
-
+private String LastUpdateTime()
+{
+    long lastUpdate= preferencesManager.getLastUpdateTime();
+    SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
+    return  sdf.format(new Date(lastUpdate));
+}
     private void getForecastData(String city,boolean isNewSearch) {
         progressBar.setVisibility(View.VISIBLE);
         WeatherJsonAPI dailyData = new WeatherJsonAPI(this, URL_API.ForecastURL);
@@ -104,15 +107,6 @@ public class Forecastactivity extends AppCompatActivity {
                     Toast.makeText(Forecastactivity.this, error, Toast.LENGTH_SHORT).show();
                 }
             });
-
         }
-        ;
-
-    }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
     }
 }

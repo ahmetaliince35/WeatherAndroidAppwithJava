@@ -1,9 +1,11 @@
 package com.example.weatherapp.Helpers;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
@@ -27,8 +29,8 @@ public class AutoUpdateConfig {
         );
 
     }
-    //Worker a ait görevleri denemek için oluşturuldu
-    /*public static void setupAutoUpdateNow(Context context) {
+    //Worker a ait görevleri denemek için anlık olarak güncelleme yapacak şekilde oluşturuldu.
+    /*public static void setupAutoUpdate(Context context) {
         // Worker için OneTimeWorkRequest oluştur
         OneTimeWorkRequest weatherWorkRequest = new OneTimeWorkRequest.Builder(WeatherUpdater.class)
                 .build();

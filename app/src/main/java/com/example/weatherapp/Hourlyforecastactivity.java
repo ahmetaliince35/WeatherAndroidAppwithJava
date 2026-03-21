@@ -27,39 +27,19 @@ public class Hourlyforecastactivity extends AppCompatActivity {
     private boolean isSaveLocation;
     private String cityName;
     private LinearLayout root;
+    private int backGroundRes;
 PreferencesManager preferencesManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_hourlyforecastactivity);
-        // ActionBar'da geri butonu
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("5 Günlük Tahmin");
-        }
-preferencesManager=PreferencesManager.getInstance(this);
-        recyclerViewHourly = findViewById(R.id.recyclerViewHourly);
-        progressBar = findViewById(R.id.progressBar);
-        textViewTitle = findViewById(R.id.textViewTitle);
-        root= findViewById(R.id.root);
-        // Intent'ten şehir adını al
-        cityName = getIntent().getStringExtra("CITY_NAME");
-        if (TextUtils.isEmpty(cityName)) {
-            cityName = preferencesManager.getSavedCityName();
-        }
-        int bgRes = getIntent().getIntExtra("background-res",R.drawable.background);
-        isNewSearch=getIntent().getBooleanExtra("isNewSearch",false);
-        isSaveLocation=getIntent().getBooleanExtra("isSaveLocation",false);
-        root.setBackgroundResource(bgRes);
-        if (cityName == null || cityName.isEmpty()) {
-            Toast.makeText(this, "Şehir bilgisi bulunamadı", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
+
+        initialVariables();
+        getIntents();
 
 
-        // Başlığı ayarla
         textViewTitle.setText(cityName + " - 72 Saatlik Tahmin");
+        root.setBackgroundResource(backGroundRes);
 
         // RecyclerView ayarları
         hourlyList = new ArrayList<>();
@@ -67,10 +47,26 @@ preferencesManager=PreferencesManager.getInstance(this);
         recyclerViewHourly.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewHourly.setAdapter(adapter);
 
-        // Verileri çek
         getHourlyForecast(isNewSearch);
     }
-
+    private void getIntents()
+    {
+        cityName = getIntent().getStringExtra("CITY_NAME");
+        if (TextUtils.isEmpty(cityName)) {
+            cityName = preferencesManager.getSavedCityName();
+        }
+        backGroundRes = getIntent().getIntExtra("background-res",R.drawable.background);
+        isNewSearch=getIntent().getBooleanExtra("isNewSearch",false);
+        isSaveLocation=getIntent().getBooleanExtra("isSaveLocation",false);
+    }
+private void initialVariables()
+{
+    preferencesManager=PreferencesManager.getInstance(this);
+    recyclerViewHourly = findViewById(R.id.recyclerViewHourly);
+    progressBar = findViewById(R.id.progressBar);
+    textViewTitle = findViewById(R.id.textViewTitle);
+    root= findViewById(R.id.root);
+}
     private void getHourlyForecast(boolean isNewSearch) {
         progressBar.setVisibility(View.VISIBLE);
         WeatherJsonAPI hourlyData = new WeatherJsonAPI(this, URL_API.ForecastURL);
@@ -102,9 +98,5 @@ preferencesManager=PreferencesManager.getInstance(this);
             });
         }
     }
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
-    }
+
 }

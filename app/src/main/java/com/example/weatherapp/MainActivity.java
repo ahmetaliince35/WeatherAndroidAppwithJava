@@ -24,23 +24,17 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.room.Room;
-import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.PeriodicWorkRequest;
-import androidx.work.WorkManager;
-
 import com.example.weatherapp.Helpers.AutoUpdateConfig;
 import com.example.weatherapp.Helpers.CitySearchDB;
 import com.example.weatherapp.Helpers.UIUpdate;
 import com.example.weatherapp.Helpers.WeatherJsonAPI;
 import com.example.weatherapp.data.AppDatabase;
-import com.example.weatherapp.data.CityEntity;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity
 {
