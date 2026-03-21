@@ -43,58 +43,56 @@ public class UIUpdate {
             case "09n":
             case "10d":
             case "10n":
-                iconResource = R.drawable.icon_rainy;
-                break;
             case "11d":
             case "11n":
-                iconResource = R.drawable.icon_thunderstorm;
+                iconResource = R.drawable.icon_rainy;
                 break;
             case "13d":
             case "13n":
                 iconResource = R.drawable.icon_snowy;
                 break;
             default:
-                iconResource = R.drawable.icon_sunny;
+                iconResource = R.drawable.icon_partlycloudy;
                 break;
         }
         return iconResource;
     }
-    public static int updateBackgroundByWeather(String iconCode) {
+    public static int updateBackgroundByWeather(String iconCode,String description) {
         int backgroundRes;
 
-        if (iconCode.startsWith("01")) {
-            backgroundRes = iconCode.endsWith("d")
-                    ? R.drawable.sun
-                    : R.drawable.moon;
+        if(iconCode.endsWith("n"))
+        {
+            backgroundRes=R.drawable.moony;
+        }
+        else if (iconCode.startsWith("01") && iconCode.endsWith("d")) {
+            backgroundRes= R.drawable.sunny;
 
         }
         else if (iconCode.startsWith("02") || iconCode.startsWith("03"))
         {
-            backgroundRes=R.drawable.partlycloud;
+            backgroundRes=R.drawable.partlycloudy;
         }
         else if (iconCode.startsWith("04"))
         {
-            backgroundRes = R.drawable.very_cloud;
-
+            if(description.contains("parçalı"))
+            {
+                backgroundRes=R.drawable.partlycloudy;
+            }
+            else {
+                backgroundRes=R.drawable.very_cloudy;
+            }
         }
-        else if (iconCode.startsWith("09") || iconCode.startsWith("10"))
+        else if (iconCode.startsWith("09") || iconCode.startsWith("10") || iconCode.startsWith("11"))
         {
-            backgroundRes = R.drawable.rain;
-
-        }
-        else if(iconCode.startsWith("11"))
-        {
-            backgroundRes= R.drawable.thunder;
-
+            backgroundRes=R.drawable.rainy;
         }
         else if (iconCode.startsWith("13"))
         {
-            backgroundRes = R.drawable.snow;
-
+            backgroundRes=R.drawable.snowy;
         }
         else
         {
-            backgroundRes = R.drawable.sun;
+            backgroundRes = R.drawable.partlycloudy;
         }
         return backgroundRes;
     }

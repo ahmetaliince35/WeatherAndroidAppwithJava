@@ -31,14 +31,14 @@ public class Forecastactivity extends AppCompatActivity {
     private boolean isNewSearch;
     private boolean isSaveLocation;
     private String cityName;
-    private String updateTime;
     private int backGroundRes;
     PreferencesManager preferencesManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_forecastactivity);
-
+        initialVariables();
+        getIntents();
         String updateTime= LastUpdateTime();
 
         recyclerViewForecast.setLayoutManager(new LinearLayoutManager(this));
@@ -46,12 +46,11 @@ public class Forecastactivity extends AppCompatActivity {
         adapter = new ForecastAdapter(this, forecastList);
         recyclerViewForecast.setAdapter(adapter);
 
-        textViewLastUpdate.setText("Son güncelleme: " + updateTime);
+        //textViewLastUpdate.setText("Son güncelleme: " + updateTime);
         root.setBackgroundResource(backGroundRes);
         textViewCityTitle.setText(cityName + " - 5 Günlük Tahmin");
 
-        initialVariables();
-        getIntents();
+
         getForecastData(cityName,isNewSearch);
     }
     private void  initialVariables()

@@ -314,7 +314,7 @@ private AppDatabase db;
                 tempData=data;
                 buttonForecast.setEnabled(true);
                 buttonHourlyForecast.setEnabled(true);
-                updateBackgroundByWeather(data.icon);
+                updateBackgroundByWeather(data.icon,data.description);
             }
 
             @Override
@@ -383,7 +383,7 @@ private AppDatabase db;
         if (preferencesManager.getSavedCityName()==null) return;
         if(preferencesManager.getIcon()!= null)
         {
-            updateBackgroundByWeather(preferencesManager.getIcon());
+            updateBackgroundByWeather(preferencesManager.getIcon(),preferencesManager.getDesc());
         }
         currentCity = preferencesManager.getSavedCityName();
         buttonForecast.setEnabled(true);
@@ -434,8 +434,8 @@ private AppDatabase db;
         int iconResource= UIUpdate.setWeatherIcon(icon,description);
         imageViewWeatherIcon.setImageResource(iconResource);
     }
-    private void updateBackgroundByWeather(String iconCode) {
-     int backgroundRes= UIUpdate.updateBackgroundByWeather(iconCode);
+    private void updateBackgroundByWeather(String iconCode,String description) {
+     int backgroundRes= UIUpdate.updateBackgroundByWeather(iconCode,description);
             currentbackround=backgroundRes;
             root.setBackgroundResource(currentbackround);
     }
