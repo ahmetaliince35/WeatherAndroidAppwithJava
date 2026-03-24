@@ -49,7 +49,7 @@ public class Forecastactivity extends AppCompatActivity {
         //textViewLastUpdate.setText("Son güncelleme: " + updateTime);
         root.setBackgroundResource(backGroundRes);
         textViewCityTitle.setText(cityName + " - 5 Günlük Tahmin");
-
+        textViewLastUpdate.setText("Son Güncelleme:"+updateTime);
 
         getForecastData(cityName,isNewSearch);
     }

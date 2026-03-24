@@ -79,7 +79,8 @@ private void initialVariables()
                 progressBar.setVisibility(View.GONE);
                 return;
             }
-        } else {
+        }
+
             hourlyData.getHourlyForecast(cityName, new WeatherJsonAPI.HourlyCallback() {
                 @Override
                 public void onSuccess(List<ForecastItem> newHourlyList,String json) {
@@ -96,7 +97,7 @@ private void initialVariables()
                     Toast.makeText(Hourlyforecastactivity.this, error, Toast.LENGTH_SHORT).show();
                 }
             });
-        }
+
     }
 
 }

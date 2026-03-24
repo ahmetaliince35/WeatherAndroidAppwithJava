@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:paddingLeft="0dp"
+    android:paddingRight="0dp"
+    android:paddingBottom="8dp"
+    android:paddingTop="8dp">
+
+
+    <ImageView
+        android:id="@+id/imgFavIcon"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginLeft="0dp"
+        android:src="@drawable/icon_sunny" />
+
+    <TextView
+        android:id="@+id/txtCity"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center_horizontal"
+        android:text="Şehir İsmi"
+        android:textColor="#000000"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/txtFavTemp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingRight="8dp"
+        android:text="24°C"
+        android:textColor="#FF5722"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginEnd="0dp"/>
+
+    <TextView
+        android:id="@+id/deletecity"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:text="🗑️"
+        android:gravity="center_vertical"/>
+
+</LinearLayout>

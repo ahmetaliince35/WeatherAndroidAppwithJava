@@ -4,11 +4,13 @@ import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -23,12 +25,19 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 import com.example.weatherapp.Helpers.AutoUpdateConfig;
 import com.example.weatherapp.Helpers.CitySearchDB;
+import com.example.weatherapp.Helpers.FavoriCities;
 import com.example.weatherapp.Helpers.UIUpdate;
 import com.example.weatherapp.Helpers.WeatherJsonAPI;
 import com.example.weatherapp.data.AppDatabase;
+import com.example.weatherapp.data.WeatherEntity;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -44,6 +53,8 @@ public class MainActivity extends AppCompatActivity
     private Button buttonCurrentLocation;
     private Button buttonClearAll;
     private Button buttonHourlyForecast;
+    private Button saveFavorites;
+    private Button deleteFavories;
     private TextView textViewCityName;
     private TextView textViewTemperature;
     private TextView textViewDescription;
@@ -55,6 +66,9 @@ public class MainActivity extends AppCompatActivity
     private ImageView imageViewWeatherIcon;
     private ImageView windDirect;
     private ScrollView root;
+    private DrawerLayout drawerLayout;
+    private RecyclerView  recyclerFavorites;
+    private List<WeatherEntity> favoriteList;
     private int currentbackround=R.drawable.background;
 
     private String currentCity = "";
@@ -64,7 +78,9 @@ public class MainActivity extends AppCompatActivity
     private PreferencesManager preferencesManager;
     private WeatherJsonAPI.WeatherData tempData;
     private ActivityResultLauncher<String> notificationPermissionLauncher;
-private AppDatabase db;
+    private AppDatabase citydb;
+    private AppDatabase favoritesdb;
+    FavoriCityAdapter favoriCityAdapter;
     private static final int Location_Permission_Request=100;
     private static final  String TAG="Main Activity";
 
@@ -72,21 +88,83 @@ private AppDatabase db;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        db= Room.databaseBuilder(getApplicationContext(),
-                AppDatabase.class,"weather_db.db")
-                .createFromAsset("weather.db").build();
+        initViews();
+        connectionDatabase();
+        setupRecyclerView();
+
         locationGetter=new LocationGetter(this);
         preferencesManager=PreferencesManager.getInstance(this);
-        initViews();
 
         AutoUpdateConfig.setupAutoUpdate(getApplicationContext());
+
         setupAutoComplete();
         loadSavedWeather();
         buttonClicked();
         notificationSettings();
+
     }
 
+private void connectionDatabase()
+{
+    citydb= Room.databaseBuilder(getApplicationContext(),
+                    AppDatabase.class,"weather_db.db")
+            .fallbackToDestructiveMigration()
+            .createFromAsset("weather.db").build();
 
+    favoritesdb = Room.databaseBuilder(getApplicationContext(),
+                    AppDatabase.class, "favorites-db")
+            .allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
+            .build();
+
+}
+private void setupRecyclerView()
+{
+    favoriteList = new ArrayList<>();
+
+    favoriCityAdapter = new FavoriCityAdapter(favoriteList, new FavoriCityAdapter.OnCityAction() {
+        @Override
+        public void onClick(WeatherEntity city) {
+         currentCity=city.cityName;
+         isNewSearch=true;
+         isSaveLocation=false;
+         getWeatherData(currentCity);
+         drawerLayout.closeDrawer(Gravity.START);
+        }
+
+        @Override
+        public void onDelete(WeatherEntity city) {
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Şehri Sil")
+                    .setMessage(city.cityName + " favorilerden silinsin mi?")
+                    .setPositiveButton("Evet", (dialog, which) -> {
+                        Executors.newSingleThreadExecutor().execute(() -> {
+                            // Veritabanından sil
+                            favoritesdb.weatherDao().deleteByCity(city.cityName);
+                        });
+                    })
+                    .setNegativeButton("Hayır", null)
+                    .show();
+        }
+
+    });
+    recyclerFavorites.setLayoutManager(new LinearLayoutManager(this));
+    recyclerFavorites.setAdapter(favoriCityAdapter);
+    favoritesdb.weatherDao().getAllFavorites().observe(this, newList -> {
+        if (newList != null) {
+            favoriteList.clear();
+            favoriteList.addAll(newList);
+            favoriCityAdapter.notifyDataSetChanged();
+            Log.d("LIVE_DATA", "Liste otomatik güncellendi. Eleman sayısı: " + newList.size());
+        }
+    });
+}
+    private void onFavoriteCitySelected(WeatherEntity city) {
+        currentCity = city.cityName;
+        getWeatherData(currentCity);
+
+        drawerLayout.closeDrawer(Gravity.START);
+    }
     private void notificationSettings()
     {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -127,13 +205,15 @@ private AppDatabase db;
         textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
         windDirect=findViewById(R.id.imageViewWindTurbine);
         imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
-
+        drawerLayout=findViewById(R.id.drawerlayout);
+        recyclerFavorites=findViewById(R.id.recyclerFavorites);
         root = findViewById(R.id.rootScroll);
-
-
+        saveFavorites=findViewById(R.id.buttonAddFavori);
+        deleteFavories=findViewById(R.id.buttondeleteALlFavori);
     }
 
-    private void buttonClicked() {
+    private void buttonClicked()
+    {
         buttonSearch.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -188,7 +268,6 @@ private AppDatabase db;
             currentCity = "";
             isSaveLocation = false;
 
-            // UI'yi güvenli şekilde temizle
             textViewCityName.setText("Şehir yok");
             textViewTemperature.setText("--°C");
             textViewDescription.setText("---");
@@ -209,7 +288,59 @@ private AppDatabase db;
             getPermission();
             }
         });
+
+        saveFavorites.setOnClickListener(new View.OnClickListener() {
+            FavoriCities favoriCities = new FavoriCities(favoritesdb);
+            @Override
+            public void onClick(View v) {
+                if (tempData == null)
+                {
+                    Toast.makeText(MainActivity.this, "Önce bir şehir araması yapmalısın!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Executors.newSingleThreadExecutor().execute(() -> {
+
+                    boolean isAdded = favoriCities.saveToFavorites(
+                            currentCity,
+                            tempData.temp,
+                            tempData.description,
+                            tempData.humidity,
+                            tempData.windSpeed,
+                            tempData.icon);
+
+                    if (isAdded) {
+
+                        runOnUiThread(() -> {
+                            drawerLayout.openDrawer(Gravity.START);
+                        });
+
+                    } else {
+                        runOnUiThread(() -> {
+                            Toast.makeText(getApplicationContext(), "Bu şehir zaten kayıtlı", Toast.LENGTH_SHORT).show();
+                            drawerLayout.openDrawer(Gravity.START);
+                        });
+                    }
+                });
+            }
+    });
+        deleteFavories.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Hepsini Sil")
+                        .setMessage("Tüm favori şehirleriniz silinecek. Emin misiniz?")
+                        .setPositiveButton("Evet, Sil", (dialog, which) -> {
+                            Executors.newSingleThreadExecutor().execute(() -> {
+                                favoritesdb.weatherDao().deleteallcity();
+                            });
+                        })
+                        .setNegativeButton("Vazgeç", null)
+                        .show();
+            }
+        });
     }
+
     private void setupAutoComplete()
     {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
@@ -230,7 +361,7 @@ private AppDatabase db;
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 final String input = s.toString();
                 Executors.newSingleThreadExecutor().execute(() -> {
-                    List<String> cityNames=CitySearchDB.GetCityList(input,db);
+                    List<String> cityNames=CitySearchDB.GetCityList(input,citydb);
                     runOnUiThread(() -> {
                         adapter.clear();
                         adapter.addAll(cityNames);
@@ -242,6 +373,7 @@ private AppDatabase db;
             @Override
             public void afterTextChanged(Editable s) {}
         });
+
     }
 
 
@@ -285,9 +417,9 @@ private AppDatabase db;
             @Override
             public void onLocationReceived(String cityName) {
                 currentCity=cityName;
-
+                isNewSearch= true;
                 showSaveLocationDialog(cityName);
-                isNewSearch= !currentCity.equals(preferencesManager.getSavedCityName());
+
                 getWeatherData(currentCity);
 
                 Toast.makeText(MainActivity.this,"Konum: "+cityName,Toast.LENGTH_SHORT).show();
@@ -309,7 +441,7 @@ private AppDatabase db;
             public void onSuccess(WeatherJsonAPI.WeatherData data) {
 
                 updateUI(data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
-                        data.feelsLike, data.pressure, data.icon,data.windDirection);
+                        data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis());
 
                 tempData=data;
                 buttonForecast.setEnabled(true);
@@ -336,6 +468,7 @@ private AppDatabase db;
                     public void onClick(DialogInterface dialog, int which) {
                         // Konumu kaydet
                         preferencesManager.saveLocation(cityName);
+                        preferencesManager.updateLastUpdateTime();
                         isSaveLocation=true;
                         if(tempData!=null)
                         {
@@ -345,7 +478,7 @@ private AppDatabase db;
                                     tempData.pressure,tempData.icon,tempData.windDirection);
                             updateUI(tempData.cityName,tempData.temp,tempData.description,
                                     tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
-                                    tempData.pressure,tempData.icon,tempData.windDirection);
+                                    tempData.pressure,tempData.icon,tempData.windDirection,preferencesManager.getLastUpdateTime());
                         }
                         Toast.makeText(MainActivity.this,
                                 cityName + " varsayılan konum olarak kaydedildi",
@@ -397,12 +530,13 @@ private AppDatabase db;
                 preferencesManager.getFeels(),
                 preferencesManager.getPressure(),
                 preferencesManager.getIcon(),
-                preferencesManager.getWindDegree()
+                preferencesManager.getWindDegree(),
+                preferencesManager.getLastUpdateTime()
         );
     }
 
     private void updateUI(String cityName, double temperature, String description,
-                          int humidity, double windSpeed, double feelsLike, int pressure, String icon,float winddirection) {
+                          int humidity, double windSpeed, double feelsLike, int pressure, String icon,float winddirection,long timestamp) {
         textViewCityName.setText(cityName !=null ? cityName:" --");
         textViewTemperature.setText(String.format("%.1f°C", temperature));
         textViewDescription.setText(description != null ? description.substring(0, 1).toUpperCase() + description.substring(1): "--");
@@ -419,9 +553,8 @@ private AppDatabase db;
         else if(winddirection>=270 && winddirection<360) textViewFeelsLike.setText("KuzeyBatı → GüneyDoğu");
         windDirect.setRotation(winddirection+180);
 
-        long lastUpdate = preferencesManager.getLastUpdateTime();
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
-        String updateTime = sdf.format(new Date(lastUpdate));
+        String updateTime = sdf.format(new Date(timestamp));
         textViewLastUpdate.setText("Son güncelleme: " + updateTime);
 
         // Hava durumu ikonunu ayarlama
@@ -438,5 +571,6 @@ private AppDatabase db;
      int backgroundRes= UIUpdate.updateBackgroundByWeather(iconCode,description);
             currentbackround=backgroundRes;
             root.setBackgroundResource(currentbackround);
+            recyclerFavorites.setBackgroundResource(R.drawable.recylcerview_background);
     }
 }

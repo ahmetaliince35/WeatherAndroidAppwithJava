@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey;
         tableName = "cities",
         indices = {@Index(value = {"name"})}
 )
+
 public class CityEntity {
 
     @PrimaryKey

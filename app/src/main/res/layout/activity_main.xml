@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawerlayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <ScrollView
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/background"
     android:id="@+id/rootScroll">
-
-    <LinearLayout
+        <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -85,7 +88,6 @@
         android:fontFamily="sans-serif-medium"
         app:cornerRadius="15dp"/>
 
-    <!-- Özel Konum Butonu -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/buttonClearAll"
         android:layout_width="0dp"
@@ -101,6 +103,46 @@
         android:enabled="true"
         android:fontFamily="sans-serif-medium"
         app:cornerRadius="15dp"/>
+</LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp"
+        android:gravity="center">
+
+        <!-- Mevcut Konum Butonu -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonAddFavori"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Favorilere Ekle"
+            android:textColor="#1E3A5F"
+            android:textSize="14sp"
+            android:background="@drawable/buttons_background"
+            app:rippleColor="@android:color/transparent"
+            android:padding="12dp"
+            android:layout_marginEnd="8dp"
+            android:fontFamily="sans-serif-medium"
+            app:cornerRadius="15dp"/>
+
+        <!-- Özel Konum Butonu -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttondeleteALlFavori"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Favorileri Temizle"
+            android:textColor="#1E3A5F"
+            android:textSize="14sp"
+            android:background="@drawable/buttons_background"
+            app:rippleColor="@android:color/transparent"
+            android:padding="12dp"
+            android:layout_marginStart="8dp"
+            android:enabled="true"
+            android:fontFamily="sans-serif-medium"
+            app:cornerRadius="15dp"/>
     </LinearLayout>
         <!-- Hava Durumu Bilgi Kartı -->
         <androidx.cardview.widget.CardView
@@ -336,4 +378,23 @@
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-</ScrollView>
+    </ScrollView>
+    <LinearLayout
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@android:color/white"
+        android:padding="0dp"
+        android:layout_gravity="start">
+
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerFavorites"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_margin="0dp"
+            android:padding="0dp"
+            android:scrollbars="vertical"/>
+    </LinearLayout>
+</androidx.drawerlayout.widget.DrawerLayout>
