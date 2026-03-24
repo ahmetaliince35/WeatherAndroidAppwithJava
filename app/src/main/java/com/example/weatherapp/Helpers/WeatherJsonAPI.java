@@ -132,7 +132,7 @@ public class WeatherJsonAPI {
                     public void onResponse(JSONObject response) {
                         try {
                             List<ForecastItem> hourlyList = parseHourlyForecast(response);
-                            preferencesManager.saveHourlyForecastJson(response.toString());
+                            //preferencesManager.saveHourlyForecastJson(response.toString());
 
 
                             callback.onSuccess(hourlyList,response.toString());

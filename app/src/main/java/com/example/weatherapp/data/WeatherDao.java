@@ -23,4 +23,9 @@ public interface WeatherDao {
 
     @Query("DELETE FROM favorite_weather")
     void deleteallcity();
+    @Query("SELECT * FROM favorite_weather")
+    List<WeatherEntity> getAllFavoritesSync();  // Worker içinde kullanacağız
+
+    @Query("UPDATE favorite_weather SET temperature=:temp, description=:desc, icon=:icon WHERE cityName=:city")
+    void updateFavoriteWeather(String city, double temp, String desc, String icon);
 }

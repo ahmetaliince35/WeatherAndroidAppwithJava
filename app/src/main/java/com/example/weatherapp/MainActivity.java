@@ -96,12 +96,39 @@ public class MainActivity extends AppCompatActivity
         preferencesManager=PreferencesManager.getInstance(this);
 
         AutoUpdateConfig.setupAutoUpdate(getApplicationContext());
+        AutoUpdateConfig.setupAutoUpdateFavoriCities(getApplicationContext());
 
         setupAutoComplete();
         loadSavedWeather();
         buttonClicked();
         notificationSettings();
 
+    }
+    private void initViews()
+    {
+        editTextCity = findViewById(R.id.editTextCity);
+
+        buttonSearch = findViewById(R.id.buttonSearch);
+        buttonForecast = findViewById(R.id.buttonForecast);
+        buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
+        buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
+        buttonClearAll=findViewById(R.id.buttonClearAll);
+
+        textViewCityName = findViewById(R.id.textViewCityName);
+        textViewTemperature = findViewById(R.id.textViewTemperature);
+        textViewDescription = findViewById(R.id.textViewDescription);
+        textViewHumidity = findViewById(R.id.textViewHumidity);
+        textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
+        textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
+        textViewPressure = findViewById(R.id.textViewPressure);
+        textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
+        windDirect=findViewById(R.id.imageViewWindTurbine);
+        imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
+        drawerLayout=findViewById(R.id.drawerlayout);
+        recyclerFavorites=findViewById(R.id.recyclerFavorites);
+        root = findViewById(R.id.rootScroll);
+        saveFavorites=findViewById(R.id.buttonAddFavori);
+        deleteFavories=findViewById(R.id.buttondeleteALlFavori);
     }
 
 private void connectionDatabase()
@@ -159,133 +186,138 @@ private void setupRecyclerView()
         }
     });
 }
-    private void onFavoriteCitySelected(WeatherEntity city) {
-        currentCity = city.cityName;
-        getWeatherData(currentCity);
 
-        drawerLayout.closeDrawer(Gravity.START);
-    }
-    private void notificationSettings()
+    private void setupAutoComplete()
     {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notificationPermissionLauncher = registerForActivityResult(
-                    new ActivityResultContracts.RequestPermission(),
-                    isGranted -> {
-                        if (isGranted) {
-                            Log.d("MAINACTIVITY", "Bildirim izni verildi");
-                            Toast.makeText(this, "Bildirimler aktif", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.d("MAINACTIVITY", "Bildirim izni reddedildi");
-                            Toast.makeText(this, "Bildirimler kapalı", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-            );
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
+        editTextCity.setAdapter(adapter);
+        editTextCity.setOnItemClickListener((parent, view, position, id) -> {
+            String selected=adapter.getItem(position);
+            adapter.clear();
+            adapter.notifyDataSetChanged();
+            editTextCity.setText(selected.split(",")[0]);
+            editTextCity.dismissDropDown();
+        });
+        editTextCity.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-            requestNotificationPermission();
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                final String input = s.toString();
+                Executors.newSingleThreadExecutor().execute(() -> {
+                    List<String> cityNames=CitySearchDB.GetCityList(input,citydb);
+                    runOnUiThread(() -> {
+                        adapter.clear();
+                        adapter.addAll(cityNames);
+                        adapter.notifyDataSetChanged();
+                        editTextCity.showDropDown();
+                    });
+                });
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+    }
+    private void loadSavedWeather() {
+
+        if (preferencesManager.getSavedCityName()==null) return;
+        if(preferencesManager.getIcon()!= null)
+        {
+            updateBackgroundByWeather(preferencesManager.getIcon(),preferencesManager.getDesc());
         }
-
+        currentCity = preferencesManager.getSavedCityName();
+        buttonForecast.setEnabled(true);
+        buttonHourlyForecast.setEnabled(true);
+        updateUI(
+                preferencesManager.getSavedCityName(),
+                preferencesManager.getTemp(),
+                preferencesManager.getDesc(),
+                preferencesManager.getHumidity(),
+                preferencesManager.getWind(),
+                preferencesManager.getFeels(),
+                preferencesManager.getPressure(),
+                preferencesManager.getIcon(),
+                preferencesManager.getWindDegree(),
+                preferencesManager.getLastUpdateTime()
+        );
     }
-    private void initViews()
-    {
-        editTextCity = findViewById(R.id.editTextCity);
-
-        buttonSearch = findViewById(R.id.buttonSearch);
-        buttonForecast = findViewById(R.id.buttonForecast);
-        buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
-        buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
-        buttonClearAll=findViewById(R.id.buttonClearAll);
-
-        textViewCityName = findViewById(R.id.textViewCityName);
-        textViewTemperature = findViewById(R.id.textViewTemperature);
-        textViewDescription = findViewById(R.id.textViewDescription);
-        textViewHumidity = findViewById(R.id.textViewHumidity);
-        textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
-        textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
-        textViewPressure = findViewById(R.id.textViewPressure);
-        textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
-        windDirect=findViewById(R.id.imageViewWindTurbine);
-        imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
-        drawerLayout=findViewById(R.id.drawerlayout);
-        recyclerFavorites=findViewById(R.id.recyclerFavorites);
-        root = findViewById(R.id.rootScroll);
-        saveFavorites=findViewById(R.id.buttonAddFavori);
-        deleteFavories=findViewById(R.id.buttondeleteALlFavori);
-    }
-
     private void buttonClicked()
     {
         buttonSearch.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            String city = editTextCity.getText().toString().trim();
-            if (!city.isEmpty()) {
-                currentCity = city;
-                showSaveLocationDialog(currentCity);
-                getWeatherData(currentCity);
-                buttonClearAll.setEnabled(true);
-                isNewSearch=true;
-            } else {
-                Toast.makeText(MainActivity.this, "Lütfen şehir adı girin", Toast.LENGTH_SHORT).show();
+            @Override
+            public void onClick(View v) {
+                String city = editTextCity.getText().toString().trim();
+                if (!city.isEmpty()) {
+                    currentCity = city;
+                    showSaveLocationDialog(currentCity);
+                    getWeatherData(currentCity);
+                    buttonClearAll.setEnabled(true);
+                    isNewSearch=true;
+                } else {
+                    Toast.makeText(MainActivity.this, "Lütfen şehir adı girin", Toast.LENGTH_SHORT).show();
+                }
             }
-        }
-    });
+        });
 
         buttonForecast.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (!currentCity.isEmpty()) {
-                Intent intent = new Intent(MainActivity.this, Forecastactivity.class);
-                intent.putExtra("CITY_NAME", currentCity);
-                intent.putExtra("background-res",currentbackround);
-                intent.putExtra("isNewSearch",isNewSearch);
-                intent.putExtra("isSaveLocation",isSaveLocation);
-                startActivity(intent);
-            } else {
-                Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
+            @Override
+            public void onClick(View v) {
+                if (!currentCity.isEmpty()) {
+                    Intent intent = new Intent(MainActivity.this, Forecastactivity.class);
+                    intent.putExtra("CITY_NAME", currentCity);
+                    intent.putExtra("background-res",currentbackround);
+                    intent.putExtra("isNewSearch",isNewSearch);
+                    intent.putExtra("isSaveLocation",isSaveLocation);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
+                }
             }
-        }
-    });
+        });
         buttonHourlyForecast.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (!currentCity.isEmpty()) {
-                Intent intent = new Intent(MainActivity.this, Hourlyforecastactivity.class);
-                intent.putExtra("CITY_NAME", currentCity);
-                intent.putExtra("background-res",currentbackround);
-                intent.putExtra("isNewSearch",isNewSearch);
-                intent.putExtra("isSaveLocation",isSaveLocation);
-                startActivity(intent);
-            } else {
-                Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
+            @Override
+            public void onClick(View v) {
+                if (!currentCity.isEmpty()) {
+                    Intent intent = new Intent(MainActivity.this, Hourlyforecastactivity.class);
+                    intent.putExtra("CITY_NAME", currentCity);
+                    intent.putExtra("background-res",currentbackround);
+                    intent.putExtra("isNewSearch",isNewSearch);
+                    intent.putExtra("isSaveLocation",isSaveLocation);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
+                }
             }
-        }
-    });
+        });
         buttonClearAll.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            preferencesManager.clearAll();
+            @Override
+            public void onClick(View v) {
+                preferencesManager.clearAll();
 
-            currentCity = "";
-            isSaveLocation = false;
+                currentCity = "";
+                isSaveLocation = false;
 
-            textViewCityName.setText("Şehir yok");
-            textViewTemperature.setText("--°C");
-            textViewDescription.setText("---");
-            textViewHumidity.setText("Nem: --%");
-            textViewWindSpeed.setText("Rüzgar hızı: -- km/s");
-            textViewFeelsLike.setText("---");
-            textViewPressure.setText("Basınç: -- hPa");
-            textViewLastUpdate.setText("Son güncelleme: --");
-            imageViewWeatherIcon.setImageResource(R.drawable.icon_sunny);
-            root.setBackgroundResource(R.drawable.background);
-            windDirect.setRotation(0);
-        }
-    });
+                textViewCityName.setText("Şehir yok");
+                textViewTemperature.setText("--°C");
+                textViewDescription.setText("---");
+                textViewHumidity.setText("Nem: --%");
+                textViewWindSpeed.setText("Rüzgar hızı: -- km/s");
+                textViewFeelsLike.setText("---");
+                textViewPressure.setText("Basınç: -- hPa");
+                textViewLastUpdate.setText("Son güncelleme: --");
+                imageViewWeatherIcon.setImageResource(R.drawable.icon_sunny);
+                root.setBackgroundResource(R.drawable.background);
+                windDirect.setRotation(0);
+            }
+        });
 
         buttonCurrentLocation.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            getPermission();
+            @Override
+            public void onClick(View v) {
+                getPermission();
             }
         });
 
@@ -323,7 +355,7 @@ private void setupRecyclerView()
                     }
                 });
             }
-    });
+        });
         deleteFavories.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -341,38 +373,32 @@ private void setupRecyclerView()
         });
     }
 
-    private void setupAutoComplete()
-    {
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
-        editTextCity.setAdapter(adapter);
-        editTextCity.setOnItemClickListener((parent, view, position, id) -> {
-            String selected=adapter.getItem(position);
-            adapter.clear();
-            adapter.notifyDataSetChanged();
-            editTextCity.setText(selected.split(",")[0]);
-            editTextCity.dismissDropDown();
-        });
-        editTextCity.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                final String input = s.toString();
-                Executors.newSingleThreadExecutor().execute(() -> {
-                    List<String> cityNames=CitySearchDB.GetCityList(input,citydb);
-                    runOnUiThread(() -> {
-                        adapter.clear();
-                        adapter.addAll(cityNames);
-                        adapter.notifyDataSetChanged();
-                        editTextCity.showDropDown();
-                    });
-                });
+    private void notificationSettings()
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher = registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    isGranted -> {
+                        if (isGranted) {
+                            Log.d("MAINACTIVITY", "Bildirim izni verildi");
+                            Toast.makeText(this, "Bildirimler aktif", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Log.d("MAINACTIVITY", "Bildirim izni reddedildi");
+                            Toast.makeText(this, "Bildirimler kapalı", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+            );
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Bildirim izni isteniyor...");
+                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+                }
             }
-            @Override
-            public void afterTextChanged(Editable s) {}
-        });
+
+        }
 
     }
 
@@ -502,38 +528,6 @@ private void setupRecyclerView()
 
 
 
-    private void requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "Bildirim izni isteniyor...");
-                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS);
-            }
-        }
-    }
-    private void loadSavedWeather() {
-
-        if (preferencesManager.getSavedCityName()==null) return;
-        if(preferencesManager.getIcon()!= null)
-        {
-            updateBackgroundByWeather(preferencesManager.getIcon(),preferencesManager.getDesc());
-        }
-        currentCity = preferencesManager.getSavedCityName();
-        buttonForecast.setEnabled(true);
-        buttonHourlyForecast.setEnabled(true);
-        updateUI(
-                preferencesManager.getSavedCityName(),
-                preferencesManager.getTemp(),
-                preferencesManager.getDesc(),
-                preferencesManager.getHumidity(),
-                preferencesManager.getWind(),
-                preferencesManager.getFeels(),
-                preferencesManager.getPressure(),
-                preferencesManager.getIcon(),
-                preferencesManager.getWindDegree(),
-                preferencesManager.getLastUpdateTime()
-        );
-    }
 
     private void updateUI(String cityName, double temperature, String description,
                           int humidity, double windSpeed, double feelsLike, int pressure, String icon,float winddirection,long timestamp) {
