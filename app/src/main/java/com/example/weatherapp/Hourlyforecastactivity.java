@@ -11,10 +11,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.weatherapp.Helpers.URL_API;
 import com.example.weatherapp.Helpers.WeatherJsonAPI;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class Hourlyforecastactivity extends AppCompatActivity {
 
@@ -25,6 +29,7 @@ public class Hourlyforecastactivity extends AppCompatActivity {
     private TextView textViewTitle;
     private boolean isNewSearch;
     private boolean isSaveLocation;
+    private TextView lastUpdateTime;
     private String cityName;
     private LinearLayout root;
     private int backGroundRes;
@@ -43,9 +48,12 @@ PreferencesManager preferencesManager;
 
         // RecyclerView ayarları
         hourlyList = new ArrayList<>();
-        adapter = new ForecastAdapter(this, hourlyList);
+        adapter = new ForecastAdapter(this, hourlyList,0);
         recyclerViewHourly.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewHourly.setAdapter(adapter);
+        String lastupdateTime=LastUpdateTime(isNewSearch);
+        lastUpdateTime.setText("Son Güncelleme: "+ lastupdateTime);
+
 
         getHourlyForecast(isNewSearch);
     }
@@ -65,8 +73,27 @@ private void initialVariables()
     recyclerViewHourly = findViewById(R.id.recyclerViewHourly);
     progressBar = findViewById(R.id.progressBar);
     textViewTitle = findViewById(R.id.textViewTitle);
+    lastUpdateTime=findViewById(R.id.textViewLastUpdate);
     root= findViewById(R.id.root);
 }
+    private String LastUpdateTime(boolean isNewSearch)
+    {
+        long lastUpdate;
+        if(isNewSearch==false)
+        {
+            lastUpdate= preferencesManager.getLastUpdateTime();
+            SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm - EE", new Locale("tr", "TR"));
+            return  sdf.format(new Date(lastUpdate));
+        }
+        else
+        {
+            lastUpdate=System.currentTimeMillis();
+            SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm - EE", new Locale("tr", "TR"));
+            return  sdf.format(new Date(lastUpdate));
+        }
+
+
+    }
     private void getHourlyForecast(boolean isNewSearch) {
         progressBar.setVisibility(View.VISIBLE);
         WeatherJsonAPI hourlyData = new WeatherJsonAPI(this, URL_API.ForecastURL);
@@ -97,7 +124,6 @@ private void initialVariables()
                     Toast.makeText(Hourlyforecastactivity.this, error, Toast.LENGTH_SHORT).show();
                 }
             });
-
     }
 
 }

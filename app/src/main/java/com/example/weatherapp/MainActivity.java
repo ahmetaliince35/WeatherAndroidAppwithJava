@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
@@ -25,7 +24,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -34,6 +32,7 @@ import com.example.weatherapp.Helpers.AutoUpdateConfig;
 import com.example.weatherapp.Helpers.CitySearchDB;
 import com.example.weatherapp.Helpers.FavoriCities;
 import com.example.weatherapp.Helpers.UIUpdate;
+import com.example.weatherapp.Helpers.URL_API;
 import com.example.weatherapp.Helpers.WeatherJsonAPI;
 import com.example.weatherapp.data.AppDatabase;
 import com.example.weatherapp.data.WeatherEntity;
@@ -60,9 +59,9 @@ public class MainActivity extends AppCompatActivity
     private TextView textViewDescription;
     private TextView textViewHumidity;
     private TextView textViewWindSpeed;
-    private TextView textViewFeelsLike;
     private TextView textViewPressure;
     private TextView textViewLastUpdate;
+    private TextView textViewCloudiness;
     private ImageView imageViewWeatherIcon;
     private ImageView windDirect;
     private ScrollView root;
@@ -113,13 +112,12 @@ public class MainActivity extends AppCompatActivity
         buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
         buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
         buttonClearAll=findViewById(R.id.buttonClearAll);
-
+        textViewCloudiness=findViewById(R.id.textViewCloudiness);
         textViewCityName = findViewById(R.id.textViewCityName);
         textViewTemperature = findViewById(R.id.textViewTemperature);
         textViewDescription = findViewById(R.id.textViewDescription);
         textViewHumidity = findViewById(R.id.textViewHumidity);
         textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
-        textViewFeelsLike = findViewById(R.id.textViewFeelsLike);
         textViewPressure = findViewById(R.id.textViewPressure);
         textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
         windDirect=findViewById(R.id.imageViewWindTurbine);
@@ -241,7 +239,8 @@ private void setupRecyclerView()
                 preferencesManager.getPressure(),
                 preferencesManager.getIcon(),
                 preferencesManager.getWindDegree(),
-                preferencesManager.getLastUpdateTime()
+                preferencesManager.getLastUpdateTime(),
+                preferencesManager.getCloudiness()
         );
     }
     private void buttonClicked()
@@ -305,9 +304,9 @@ private void setupRecyclerView()
                 textViewDescription.setText("---");
                 textViewHumidity.setText("Nem: --%");
                 textViewWindSpeed.setText("Rüzgar hızı: -- km/s");
-                textViewFeelsLike.setText("---");
                 textViewPressure.setText("Basınç: -- hPa");
                 textViewLastUpdate.setText("Son güncelleme: --");
+                textViewCloudiness.setText("Bulut Oranı: --%");
                 imageViewWeatherIcon.setImageResource(R.drawable.icon_sunny);
                 root.setBackgroundResource(R.drawable.background);
                 windDirect.setRotation(0);
@@ -461,13 +460,13 @@ private void setupRecyclerView()
 
     private void getWeatherData(String city)
     {
-        WeatherJsonAPI repo = new WeatherJsonAPI(this,URL_API.CurrentURL);
+        WeatherJsonAPI repo = new WeatherJsonAPI(this, URL_API.CurrentURL);
         repo.getWeather(city, new WeatherJsonAPI.WeatherCallback() {
             @Override
             public void onSuccess(WeatherJsonAPI.WeatherData data) {
 
                 updateUI(data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
-                        data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis());
+                        data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis(),data.cloudiness);
 
                 tempData=data;
                 buttonForecast.setEnabled(true);
@@ -501,10 +500,10 @@ private void setupRecyclerView()
                             preferencesManager.saveWeatherData(
                                     tempData.cityName,tempData.temp,tempData.description,
                                     tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
-                                    tempData.pressure,tempData.icon,tempData.windDirection);
+                                    tempData.pressure,tempData.icon,tempData.windDirection,tempData.cloudiness);
                             updateUI(tempData.cityName,tempData.temp,tempData.description,
                                     tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
-                                    tempData.pressure,tempData.icon,tempData.windDirection,preferencesManager.getLastUpdateTime());
+                                    tempData.pressure,tempData.icon,tempData.windDirection,preferencesManager.getLastUpdateTime(),tempData.cloudiness);
                         }
                         Toast.makeText(MainActivity.this,
                                 cityName + " varsayılan konum olarak kaydedildi",
@@ -530,23 +529,15 @@ private void setupRecyclerView()
 
 
     private void updateUI(String cityName, double temperature, String description,
-                          int humidity, double windSpeed, double feelsLike, int pressure, String icon,float winddirection,long timestamp) {
+                          double humidity, double windSpeed, double feelsLike, int pressure, String icon,float winddirection,long timestamp,int cloudiness) {
         textViewCityName.setText(cityName !=null ? cityName:" --");
         textViewTemperature.setText(String.format("%.1f°C", temperature));
         textViewDescription.setText(description != null ? description.substring(0, 1).toUpperCase() + description.substring(1): "--");
         textViewHumidity.setText("Nem: " + humidity + "%");
         textViewWindSpeed.setText((String.format(Locale.getDefault(), "Rüzgar hızı: %.0f km/s", windSpeed)));
         textViewPressure.setText("Basınç: " + pressure + " hPa");
-        if(winddirection==0) textViewFeelsLike.setText("Kuzey → Güney");
-        else if(winddirection==90) textViewFeelsLike.setText("Doğu → Batı ");
-        else if(winddirection==180) textViewFeelsLike.setText("Güney → Kuzey");
-        else if(winddirection==270) textViewFeelsLike.setText("Batı → Doğu");
-        else if(winddirection>0 && winddirection<90) textViewFeelsLike.setText("KuzeyDoğu → GüneyBatı");
-        else if(winddirection>=90 && winddirection<180) textViewFeelsLike.setText("GüneyDoğu → KuzeyBatı");
-        else if(winddirection>=180 && winddirection<270) textViewFeelsLike.setText("GüneyBatı → KuzeyDoğu");
-        else if(winddirection>=270 && winddirection<360) textViewFeelsLike.setText("KuzeyBatı → GüneyDoğu");
         windDirect.setRotation(winddirection+180);
-
+        textViewCloudiness.setText("Bulut Oranı: %"+ cloudiness);
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
         String updateTime = sdf.format(new Date(timestamp));
         textViewLastUpdate.setText("Son güncelleme: " + updateTime);

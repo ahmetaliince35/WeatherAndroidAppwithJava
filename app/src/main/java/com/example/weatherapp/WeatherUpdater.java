@@ -19,6 +19,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.example.weatherapp.Helpers.UIUpdate;
+import com.example.weatherapp.Helpers.URL_API;
 
 import java.util.List;
 
@@ -81,7 +82,8 @@ public class WeatherUpdater extends Worker {
                     data.main.feels_like,
                     data.main.pressure,
                     data.weather.get(0).icon,
-                    data.wind.deg
+                    data.wind.deg,
+                    data.cloud.allcloud
             );
             Response<ResponseBody> hourlyResponse = service.getForecast(cityName, API_KEY, "metric", "tr", 24).execute();
             if (hourlyResponse.isSuccessful() && hourlyResponse.body() != null) {
@@ -135,10 +137,14 @@ public class WeatherUpdater extends Worker {
         public List<Weather> weather;
         public Wind wind;
         public String name;
+        public Cloud cloud;
+        public static class Cloud{
+            public int allcloud;
+        }
 
         public static class Main {
             public double temp;
-            public int humidity;
+            public double humidity;
             public double feels_like;
             public int pressure;
         }

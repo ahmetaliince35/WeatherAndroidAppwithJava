@@ -17,12 +17,16 @@ import java.util.Locale;
 
 public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.ForecastViewHolder> {
 
+    private static final int hourlyactivitymode=0;
+    private static final int dailyactivitymode=1;
+    private int mode;
     private Context context;
     private List<ForecastItem> forecastList;
 
-    public ForecastAdapter(Context context, List<ForecastItem> forecastList) {
+    public ForecastAdapter(Context context, List<ForecastItem> forecastList,int mode) {
         this.context = context;
         this.forecastList = forecastList;
+        this.mode=mode;
     }
 
     @NonNull
@@ -46,34 +50,22 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
         holder.textViewDescription.setText(description.substring(0, 1).toUpperCase() +
                 description.substring(1));
 
-        holder.textViewHumidity.setText(String.format(Locale.getDefault(), "Nem:%d%%",item.getHumidity()));
-        holder.textViewWind.setText(String.format(Locale.getDefault(), "Rüzgar hızı: %.0f km/s", item.getWindSpeed()));
+        holder.textViewHumidity.setText(String.format(Locale.getDefault(), "Nem:%.0f",item.getHumidity()));
+        holder.textViewWind.setText(String.format(Locale.getDefault(), "Rüzgar hızı: %.0fkm/s", item.getWindSpeed()));
         if(description.contains("kar") || item.getTemperature()<=0)
         {
-            holder.raindaily.setText(String.format("🌧 Yağış: %.2f cm", item.getPreprainy()));
+            holder.raindaily.setText(String.format("Yağış: %.2f cm", item.getPreprainy()));
         }
         else
         {
-            holder.raindaily.setText(String.format("🌧 Yağış: %.2f mm", item.getPreprainy()));
+            holder.raindaily.setText(String.format("Yağış: %.2f mm", item.getPreprainy()));
         }
         // Yağış ihtimali
             holder.rainprobability.setVisibility(View.VISIBLE);
-            holder.rainprobability.setText(String.format("☔ İhtimal: %.0f%%", item.getProbability()));
+            holder.rainprobability.setText(String.format("İhtimal: %.0f%%", item.getProbability()));
 
-            int colorRes;
-            // Yüksek ihtimalde vurgula
-            if (item.getProbability() >= 70) {
-                colorRes=R.color.prob_high;
-            } else if (item.getProbability() >= 40) {
-                colorRes=R.color.prob_medium;
-            } else if (item.getProbability()>0) {
-                colorRes=R.color.prob_low;
-            }
-            else{
-                colorRes=R.color.prob_none;
-            }
-            holder.rainprobability.setTextColor(ContextCompat.getColor(context,colorRes));
         // İkon ayarlama
+        setTextViewsColor(holder,item);
         setWeatherIcon(holder.imageViewIcon,icon,description );
     }
 
@@ -109,8 +101,67 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
             textViewWind = itemView.findViewById(R.id.textViewWind);
             imageViewIcon = itemView.findViewById(R.id.imageViewIcon);
             raindaily=itemView.findViewById(R.id.textViewRain);
-
             rainprobability=itemView.findViewById(R.id.textViewRainProbability);
         }
+    }
+
+    public void setTextViewsColor(ForecastViewHolder holder,ForecastItem item )
+    {
+        double rainProbability=item.getProbability();
+        double temperature= item.getTemperature();
+        double humidity= item.getHumidity();
+        double totalRain= item.getPreprainy();
+        double windSpeed= item.getWindSpeed();
+        //Yağış olasılığı için renk skalası oluşturuldu.
+        // Günlük ve 3 saatlik yağış miktarları için renk skalası oluşturuldu.
+        if(mode==dailyactivitymode)
+        {
+            holder.raindaily.setTextColor(ContextCompat.getColor(context,
+                    setLevelColor(totalRain,25,5,0,false)));
+        } else if (mode==hourlyactivitymode) {
+            holder.textViewWind.setTextColor(ContextCompat.getColor(context,
+                    setLevelColor(totalRain,5,2,0,false)));
+        }
+        holder.rainprobability.setTextColor(ContextCompat.getColor(context,
+                setLevelColor(rainProbability,70,40,0,false)));
+
+        holder.textViewWind.setTextColor(ContextCompat.getColor(context,
+                setLevelColor(windSpeed,25,15,0,false)));
+        // Nem değerleri için renk skalası oluşturuldu.
+        holder.textViewHumidity.setTextColor(ContextCompat.getColor(context,
+                setLevelColor(humidity,90,60,30,false)));
+        // Sıcaklık değerleri için renk skalası oluşturuldu.
+        holder.textViewTemp.setTextColor(ContextCompat.getColor(context,
+                setLevelColor(temperature,30,15,0,true)));
+    }
+    public int setLevelColor( double value,double max_value,double medium_value,double min_value,boolean istemperature)
+    {
+        int colorRes;
+        if(istemperature==false)
+        {
+            if (value > max_value) {
+                colorRes = R.color.prob_high;
+            } else if (value > medium_value) {
+                colorRes = R.color.prob_medium;
+            } else if (value > min_value) {
+                colorRes = R.color.prob_low;
+            } else {
+                colorRes = R.color.prob_none;
+            }
+        }
+        else
+        {
+            if (value > max_value) {
+                colorRes = R.color.prob_high;
+            } else if (value > medium_value) {
+                colorRes = R.color.prob_medium;
+            } else if (value > min_value) {
+                colorRes = R.color.prob_none;
+            } else {
+                colorRes = R.color.prob_low;
+            }
+        }
+
+        return colorRes;
     }
 }

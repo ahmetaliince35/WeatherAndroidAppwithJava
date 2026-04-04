@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.weatherapp.Helpers.URL_API;
 import com.example.weatherapp.Helpers.WeatherJsonAPI;
 
 import java.text.SimpleDateFormat;
@@ -39,19 +40,18 @@ public class Forecastactivity extends AppCompatActivity {
         setContentView(R.layout.activity_forecastactivity);
         initialVariables();
         getIntents();
-        String updateTime= LastUpdateTime();
 
         recyclerViewForecast.setLayoutManager(new LinearLayoutManager(this));
         forecastList = new ArrayList<>();
-        adapter = new ForecastAdapter(this, forecastList);
+        adapter = new ForecastAdapter(this, forecastList,1);
         recyclerViewForecast.setAdapter(adapter);
 
-        //textViewLastUpdate.setText("Son güncelleme: " + updateTime);
+
+        String updateTime=LastUpdateTime(isNewSearch);
+        getForecastData(cityName,isNewSearch);
         root.setBackgroundResource(backGroundRes);
         textViewCityTitle.setText(cityName + " - 5 Günlük Tahmin");
         textViewLastUpdate.setText("Son Güncelleme:"+updateTime);
-
-        getForecastData(cityName,isNewSearch);
     }
     private void  initialVariables()
     {
@@ -69,11 +69,23 @@ public class Forecastactivity extends AppCompatActivity {
         isNewSearch = getIntent().getBooleanExtra("isNewSearch",false);
         isSaveLocation=getIntent().getBooleanExtra("isSaveLocation",false);
     }
-private String LastUpdateTime()
+private String LastUpdateTime(boolean isNewSearch)
 {
-    long lastUpdate= preferencesManager.getLastUpdateTime();
-    SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
-    return  sdf.format(new Date(lastUpdate));
+    long lastUpdate;
+    if(isNewSearch==false)
+    {
+        lastUpdate= preferencesManager.getLastUpdateTime();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm - EE", new Locale("tr", "TR"));
+        return  sdf.format(new Date(lastUpdate));
+    }
+    else
+    {
+        lastUpdate=System.currentTimeMillis();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm - EE", new Locale("tr", "TR"));
+        return  sdf.format(new Date(lastUpdate));
+    }
+
+
 }
     private void getForecastData(String city,boolean isNewSearch) {
         progressBar.setVisibility(View.VISIBLE);

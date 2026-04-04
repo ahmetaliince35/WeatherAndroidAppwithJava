@@ -6,7 +6,6 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.example.weatherapp.URL_API;
 import com.example.weatherapp.data.AppDatabase;
 import com.example.weatherapp.data.WeatherEntity;
 

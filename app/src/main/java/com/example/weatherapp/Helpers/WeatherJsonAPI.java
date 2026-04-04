@@ -10,7 +10,6 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.example.weatherapp.ForecastItem;
 import com.example.weatherapp.PreferencesManager;
-import com.example.weatherapp.URL_API;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -52,6 +51,7 @@ public class WeatherJsonAPI {
         public String icon;
         public double windSpeed;
         public float windDirection;
+        public int cloudiness;
     }
 
     // Callback arayüzü
@@ -102,6 +102,9 @@ public class WeatherJsonAPI {
                             JSONObject wind = response.getJSONObject("wind");
                             data.windSpeed = wind.getDouble("speed");
                             data.windDirection=(float) wind.getDouble("deg");
+
+                            JSONObject cloud= response.getJSONObject("clouds");
+                            data.cloudiness=cloud.getInt("all");
                             callback.onSuccess(data);
 
                         } catch (JSONException e) {

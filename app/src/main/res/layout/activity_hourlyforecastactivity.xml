@@ -29,9 +29,20 @@
                 android:text="48 Saatlik Tahmin"
                 android:textSize="22sp"
                 android:textStyle="bold"
-                android:textColor="#333333"
+                android:textColor="#1f2937"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="8dp"/>
+
+                <!-- Son Güncelleme -->
+            <TextView
+                android:layout_gravity="center"
+                android:id="@+id/textViewLastUpdate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Son güncelleme: --"
+                android:textSize="11sp"
+                android:textColor="#1f2937"
+                android:layout_marginBottom="15dp" />
 
 
         </LinearLayout>

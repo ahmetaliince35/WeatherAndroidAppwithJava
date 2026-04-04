@@ -29,14 +29,14 @@
                 android:text="5 Günlük Hava Durumu Tahmini"
                 android:textSize="22sp"
                 android:textStyle="bold"
-                android:textColor="#333333"
+                android:textColor="#1f2937"
                 android:gravity="center"/>
             <TextView
                 android:id="@+id/textViewLastUpdate"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="10sp"
-                android:textColor="#333333"
+                android:textColor="#1f2937"
                 android:gravity="center"
                 android:text="Son Güncelleme:"/>
 

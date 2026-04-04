@@ -6,14 +6,14 @@ public class ForecastItem {
 
     private String description;
     private String icon;
-    private int humidity;
+    private double humidity;
     private double  probability;
     private double preprainy;
     private double windSpeed;
      private double tempMin;
      private double tempMax;
     public ForecastItem(String date, double temperature,
-                        String description, String icon, int humidity, double probability,double preprainy,double windSpeed,double tempMin,double tempMax) {
+                        String description, String icon, double humidity, double probability,double preprainy,double windSpeed,double tempMin,double tempMax) {
         this.date = date;
         this.temperature = temperature;
         this.description = description;
@@ -42,7 +42,7 @@ public class ForecastItem {
         return icon;
     }
 
-    public int getHumidity() {
+    public double getHumidity() {
         return humidity;
     }
     public double getProbability(){ return probability;}

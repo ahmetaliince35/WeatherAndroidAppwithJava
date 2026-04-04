@@ -9,15 +9,8 @@
     <color name="white">#FFFFFFFF</color>
 
 
-    <!-- Hava durumu renkleri -->
-    <color name="sky_blue">#87CEEB</color>
-    <color name="sunny_yellow">#FFD700</color>
-    <color name="cloudy_gray">#B0C4DE</color>
-    <color name="rainy_blue">#4682B4</color>
-
-
-    <color name="prob_high">#D32F2F</color>
-    <color name="prob_medium">#F57C00</color>
-    <color name="prob_low">#0288D1</color>
-    <color name="prob_none">#9E9E9E</color>
+    <color name="prob_high">#E00606</color>
+    <color name="prob_medium">#FFE715</color>
+    <color name="prob_low">#037BBD</color>
+    <color name="prob_none">#FFFEFE</color>
 </resources>

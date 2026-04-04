@@ -37,7 +37,7 @@
                 android:text="25°C"
                 android:textSize="24sp"
                 android:textStyle="bold"
-                android:textColor="#ffd54f"/>
+                android:textColor="#f5f5f5"/>
         </LinearLayout>
 
         <!-- Sağ taraf - Detay Bilgileri -->
@@ -57,7 +57,7 @@
                 android:text="01 Ocak 2024 - Pazartesi"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="#ffffff"
+                android:textColor="#f5f5f5"
                 android:layout_marginBottom="5dp"/>
 
             <!-- Açıklama -->
@@ -67,7 +67,7 @@
                 android:layout_height="wrap_content"
                 android:text="Parçalı bulutlu"
                 android:textSize="13sp"
-                android:textColor="#e0e0e0"
+                android:textColor="#f5f5f5"
                 android:layout_marginBottom="8dp"/>
 
             <!-- Min/Max Sıcaklık -->
@@ -77,7 +77,7 @@
                 android:layout_height="wrap_content"
                 android:text="Min: 18°C / Max: 28°C"
                 android:textSize="12sp"
-                android:textColor="#cccccc"
+                android:textColor="#f5f5f5"
                 android:layout_marginBottom="8dp"/>
 
             <!-- Nem ve Rüzgar -->
@@ -91,20 +91,20 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="💧 Nem: 65%"
+                    android:text=" Nem: 65%"
                     android:textSize="11sp"
-                    android:textColor="#cccccc"/>
+                    android:textColor="#f5f5f5"/>
 
                 <TextView
                     android:id="@+id/textViewWind"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="💨 Rüzgar: 5 m/s"
+                    android:text="Rüzgar: 5 m/s"
                     android:textSize="11sp"
-                    android:textColor="#cccccc"/>
+                    android:textColor="#f5f5f5"/>
             </LinearLayout>
-            <!-- Nem ve Rüzgar -->
+            <!-- Yağış ve olasılık-->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -117,7 +117,7 @@
                     android:layout_weight="1"
                     android:text="0 mm"
                     android:textSize="11sp"
-                    android:textColor="#aaaaaa"/>
+                    android:textColor="#f5f5f5"/>
 
                 <TextView
                     android:id="@+id/textViewRainProbability"
@@ -126,7 +126,7 @@
                     android:layout_weight="1"
                     android:text="% 0"
                     android:textSize="11sp"
-                    android:textColor="#aaaaaa"/>
+                    android:textColor="#f5f5f5"/>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
