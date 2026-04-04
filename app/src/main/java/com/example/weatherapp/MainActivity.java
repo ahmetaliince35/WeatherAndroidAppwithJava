@@ -28,9 +28,13 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+
 import com.example.weatherapp.Helpers.AutoUpdateConfig;
 import com.example.weatherapp.Helpers.CitySearchDB;
 import com.example.weatherapp.Helpers.FavoriCities;
+import com.example.weatherapp.Helpers.FavoriCitiesWorker;
 import com.example.weatherapp.Helpers.UIUpdate;
 import com.example.weatherapp.Helpers.URL_API;
 import com.example.weatherapp.Helpers.WeatherJsonAPI;
@@ -101,7 +105,6 @@ public class MainActivity extends AppCompatActivity
         loadSavedWeather();
         buttonClicked();
         notificationSettings();
-
     }
     private void initViews()
     {
@@ -136,12 +139,7 @@ private void connectionDatabase()
             .fallbackToDestructiveMigration()
             .createFromAsset("weather.db").build();
 
-    favoritesdb = Room.databaseBuilder(getApplicationContext(),
-                    AppDatabase.class, "favorites-db")
-            .allowMainThreadQueries()
-            .fallbackToDestructiveMigration()
-            .build();
-
+favoritesdb=AppDatabase.getInstance(getApplicationContext());
 }
 private void setupRecyclerView()
 {

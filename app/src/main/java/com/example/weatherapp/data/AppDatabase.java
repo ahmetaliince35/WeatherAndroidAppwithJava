@@ -20,7 +20,7 @@ public abstract class AppDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             AppDatabase.class,
                             "weather_db"  // DB adı
-                    ).build();
+                    ).fallbackToDestructiveMigration().build();
                 }
             }
         }
