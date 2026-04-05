@@ -163,6 +163,16 @@ public static synchronized PreferencesManager getInstance(Context context)
             return null;
         }
     }
+    public String getAIAdvice()
+    {
+        try {
+            String advice = preferences.getString("AIAdvice", " ");
+            return advice;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public int getCloudiness()
     {
         try {
@@ -174,11 +184,12 @@ public static synchronized PreferencesManager getInstance(Context context)
         }
     }
 
-    public void saveWeatherData(String city, double temp, String desc,
+    public void saveWeatherData(String advice,String city, double temp, String desc,
                                 double humidity, double wind,
                                 double feels, int pressure, String icon,float windDegree,int cloudiness) {
         try {
             SharedPreferences.Editor editor = preferences.edit();
+            editor.putString("AIAdvice",advice);
             editor.putString("city", city);
             editor.putLong("temp", (long) temp);
             editor.putString("desc", desc);

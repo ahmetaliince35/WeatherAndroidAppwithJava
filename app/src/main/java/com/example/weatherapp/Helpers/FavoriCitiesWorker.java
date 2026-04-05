@@ -22,52 +22,43 @@ public class FavoriCitiesWorker extends Worker {
 
     @Override
     public Result doWork() {
-
         try {
             AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-
             List<WeatherEntity> favorites = db.weatherDao().getAllFavoritesSync();
 
+            if (favorites == null || favorites.isEmpty()) return Result.success();
 
-
-            if (favorites == null || favorites.isEmpty()) {
-                Log.w("FavoriWorker", "UYARI: Liste boş veya null. İşlem bitti.");
-                return Result.success();
-            }
-
+            // CountDownLatch ile bütün şehirlerin bitmesini bekleyeceğiz
             CountDownLatch latch = new CountDownLatch(favorites.size());
 
             for (WeatherEntity city : favorites) {
-                Log.d("FavoriWorker", " İstek hazırlanıyor: " + city.cityName);
-
                 WeatherJsonAPI api = new WeatherJsonAPI(getApplicationContext(), URL_API.CurrentURL);
-                api.getWeather(city.cityName, new WeatherJsonAPI.WeatherCallback() {
+
+                // DİKKAT: false gönderiyoruz! Favoriler güncellenirken AI çalışmasın.
+                api.getWeather(city.cityName, false, new WeatherJsonAPI.WeatherCallback() {
                     @Override
                     public void onSuccess(WeatherJsonAPI.WeatherData data) {
-
                         Executors.newSingleThreadExecutor().execute(() -> {
                             db.weatherDao().updateFavoriteWeather(
                                     city.cityName, data.temp, data.description, data.icon);
-                            Log.d("FavoriWorker", "DB Güncellendi: " + city.cityName);
-                            latch.countDown();
+                            Log.d("FavoriWorker", "Güncellendi: " + city.cityName);
+                            latch.countDown(); // Bir şehir bitti
                         });
                     }
 
                     @Override
                     public void onError(String error) {
-                        Log.e("FavoriWorker", "HATA: " + city.cityName + " -> " + error);
-                        latch.countDown();
+                        latch.countDown(); // Hata olsa da sayacı düşür ki Worker takılmasın
                     }
                 });
             }
 
-
+            // Bütün isteklerin bitmesi için Worker'ı burada bekletiyoruz (Max 30 saniye)
+            latch.await(30, TimeUnit.SECONDS);
+            return Result.success();
 
         } catch (Exception e) {
-            Log.e("FavoriWorker", "KRİTİK HATA: " + e.getMessage());
             return Result.failure();
         }
-
-        return Result.success();
-    }
+}
 }

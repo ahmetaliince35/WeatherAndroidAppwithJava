@@ -10,9 +10,6 @@ import java.util.List;
 
 public class FavoriCities {
     AppDatabase db;
-    private RecyclerView recyclerFavorites;
-    private List<WeatherEntity> favoriteList;
-    FavoriCityAdapter favoriCityAdapter;
     public FavoriCities(AppDatabase db)
     {
     this.db=db;

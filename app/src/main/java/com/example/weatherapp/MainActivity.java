@@ -15,6 +15,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,13 +29,10 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
 
 import com.example.weatherapp.Helpers.AutoUpdateConfig;
 import com.example.weatherapp.Helpers.CitySearchDB;
 import com.example.weatherapp.Helpers.FavoriCities;
-import com.example.weatherapp.Helpers.FavoriCitiesWorker;
 import com.example.weatherapp.Helpers.UIUpdate;
 import com.example.weatherapp.Helpers.URL_API;
 import com.example.weatherapp.Helpers.WeatherJsonAPI;
@@ -66,9 +64,11 @@ public class MainActivity extends AppCompatActivity
     private TextView textViewPressure;
     private TextView textViewLastUpdate;
     private TextView textViewCloudiness;
+    private TextView textViewAIAdvice;
     private ImageView imageViewWeatherIcon;
     private ImageView windDirect;
     private ScrollView root;
+    private ProgressBar progressBar;
     private DrawerLayout drawerLayout;
     private RecyclerView  recyclerFavorites;
     private List<WeatherEntity> favoriteList;
@@ -105,6 +105,7 @@ public class MainActivity extends AppCompatActivity
         loadSavedWeather();
         buttonClicked();
         notificationSettings();
+
     }
     private void initViews()
     {
@@ -123,6 +124,8 @@ public class MainActivity extends AppCompatActivity
         textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
         textViewPressure = findViewById(R.id.textViewPressure);
         textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
+        textViewAIAdvice=findViewById(R.id.TextViewAIAdvice);
+        progressBar=findViewById(R.id.progressBar);
         windDirect=findViewById(R.id.imageViewWindTurbine);
         imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
         drawerLayout=findViewById(R.id.drawerlayout);
@@ -228,6 +231,7 @@ private void setupRecyclerView()
         buttonForecast.setEnabled(true);
         buttonHourlyForecast.setEnabled(true);
         updateUI(
+                preferencesManager.getAIAdvice(),
                 preferencesManager.getSavedCityName(),
                 preferencesManager.getTemp(),
                 preferencesManager.getDesc(),
@@ -248,8 +252,8 @@ private void setupRecyclerView()
             public void onClick(View v) {
                 String city = editTextCity.getText().toString().trim();
                 if (!city.isEmpty()) {
+                    progressBar.setVisibility(View.VISIBLE);
                     currentCity = city;
-                    showSaveLocationDialog(currentCity);
                     getWeatherData(currentCity);
                     buttonClearAll.setEnabled(true);
                     isNewSearch=true;
@@ -296,7 +300,7 @@ private void setupRecyclerView()
 
                 currentCity = "";
                 isSaveLocation = false;
-
+                textViewAIAdvice.setText("Verilebilecek bir bok tavsiye yok");
                 textViewCityName.setText("Şehir yok");
                 textViewTemperature.setText("--°C");
                 textViewDescription.setText("---");
@@ -441,8 +445,6 @@ private void setupRecyclerView()
             public void onLocationReceived(String cityName) {
                 currentCity=cityName;
                 isNewSearch= true;
-                showSaveLocationDialog(cityName);
-
                 getWeatherData(currentCity);
 
                 Toast.makeText(MainActivity.this,"Konum: "+cityName,Toast.LENGTH_SHORT).show();
@@ -459,14 +461,15 @@ private void setupRecyclerView()
     private void getWeatherData(String city)
     {
         WeatherJsonAPI repo = new WeatherJsonAPI(this, URL_API.CurrentURL);
-        repo.getWeather(city, new WeatherJsonAPI.WeatherCallback() {
+        repo.getWeather(city,true, new WeatherJsonAPI.WeatherCallback() {
             @Override
             public void onSuccess(WeatherJsonAPI.WeatherData data) {
-
-                updateUI(data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
+                progressBar.setVisibility(View.INVISIBLE);
+                updateUI(data.AIAdvice,data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
                         data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis(),data.cloudiness);
 
                 tempData=data;
+                showSaveLocationDialog(city);
                 buttonForecast.setEnabled(true);
                 buttonHourlyForecast.setEnabled(true);
                 updateBackgroundByWeather(data.icon,data.description);
@@ -474,6 +477,7 @@ private void setupRecyclerView()
 
             @Override
             public void onError(String error) {
+                progressBar.setVisibility(View.INVISIBLE);
                 Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
             }
         });
@@ -496,10 +500,10 @@ private void setupRecyclerView()
                         if(tempData!=null)
                         {
                             preferencesManager.saveWeatherData(
-                                    tempData.cityName,tempData.temp,tempData.description,
+                                    tempData.AIAdvice,tempData.cityName,tempData.temp,tempData.description,
                                     tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
                                     tempData.pressure,tempData.icon,tempData.windDirection,tempData.cloudiness);
-                            updateUI(tempData.cityName,tempData.temp,tempData.description,
+                            updateUI(tempData.AIAdvice,tempData.cityName,tempData.temp,tempData.description,
                                     tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
                                     tempData.pressure,tempData.icon,tempData.windDirection,preferencesManager.getLastUpdateTime(),tempData.cloudiness);
                         }
@@ -526,8 +530,16 @@ private void setupRecyclerView()
 
 
 
-    private void updateUI(String cityName, double temperature, String description,
+    private void updateUI(String AIAdvice,String cityName, double temperature, String description,
                           double humidity, double windSpeed, double feelsLike, int pressure, String icon,float winddirection,long timestamp,int cloudiness) {
+        Log.d("MAİNDENEME","Gelen veri:"+AIAdvice);
+        if (AIAdvice != null && !AIAdvice.isEmpty()) {
+            textViewAIAdvice.setText(AIAdvice);
+        } else if (textViewAIAdvice.getText().toString().isEmpty()) {
+            // Eğer her iki tarafta boşsa bir placeholder yaz
+            textViewAIAdvice.setText("AI önerisi bekleniyor...");
+        }
+        textViewAIAdvice.setText(AIAdvice);
         textViewCityName.setText(cityName !=null ? cityName:" --");
         textViewTemperature.setText(String.format("%.1f°C", temperature));
         textViewDescription.setText(description != null ? description.substring(0, 1).toUpperCase() + description.substring(1): "--");
@@ -554,6 +566,6 @@ private void setupRecyclerView()
      int backgroundRes= UIUpdate.updateBackgroundByWeather(iconCode,description);
             currentbackround=backgroundRes;
             root.setBackgroundResource(currentbackround);
-            recyclerFavorites.setBackgroundResource(R.drawable.recylcerview_background);
+            recyclerFavorites.setBackgroundResource(R.drawable.general_component_background);
     }
 }

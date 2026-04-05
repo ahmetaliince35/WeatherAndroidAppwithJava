@@ -41,6 +41,7 @@ public class WeatherJsonAPI {
 
     // Basit veri sınıfı: sadece çekilen değerleri tutacak
     public static class WeatherData {
+        public String AIAdvice;
         public String cityName;
         public double temp;
         public int humidity;
@@ -71,10 +72,10 @@ public class WeatherJsonAPI {
         void onError(String error);
     }
 
-
     // Hava durumu verisini çek
-    public void getWeather(String cityName, final WeatherCallback callback) {
+    public void getWeather(String cityName,boolean isAIactive, final WeatherCallback callback) {
         String url = BASE_URL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr";
+
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
                 url,
@@ -101,13 +102,33 @@ public class WeatherJsonAPI {
 
                             JSONObject wind = response.getJSONObject("wind");
                             data.windSpeed = wind.getDouble("speed");
-                            data.windDirection=(float) wind.getDouble("deg");
+                            data.windDirection = (float) wind.getDouble("deg");
 
-                            JSONObject cloud= response.getJSONObject("clouds");
-                            data.cloudiness=cloud.getInt("all");
-                            callback.onSuccess(data);
+                            JSONObject cloud = response.getJSONObject("clouds");
+                            data.cloudiness = cloud.getInt("all");
+                            if(isAIactive==true)
+                            {
+                            new Thread(() -> {
+                                try {
+                                GeminiPrompter aiProvider = new GeminiPrompter();
+                                String advice = aiProvider.getWeatherAdvice(data.cityName, data.temp, data.description);
+                                data.AIAdvice=advice;
+                            } catch (Exception e) {
+                                Log.d(TAG,"Hata: " +e);
+                            } finally {
+                                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                                    callback.onSuccess(data);
+                                });
+                            }
+                        }).start();
 
+                            }
+                            else
+                            {
+                                callback.onSuccess(data);
+                            }
                         } catch (JSONException e) {
+                            Log.d(TAG,"Bir şeyler ters gitti."+e);
                             callback.onError(e.toString());
                         }
                     }

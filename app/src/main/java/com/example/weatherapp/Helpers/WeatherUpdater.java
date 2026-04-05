@@ -1,4 +1,4 @@
-package com.example.weatherapp;
+package com.example.weatherapp.Helpers;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -18,8 +18,9 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.example.weatherapp.Helpers.UIUpdate;
-import com.example.weatherapp.Helpers.URL_API;
+import com.example.weatherapp.MainActivity;
+import com.example.weatherapp.PreferencesManager;
+import com.example.weatherapp.R;
 
 import java.util.List;
 
@@ -72,8 +73,12 @@ public class WeatherUpdater extends Worker {
 
             WeatherResponse data = response.body();
 
-            // Preferences güncelle
+            GeminiPrompter aiProvider = new GeminiPrompter();
+            String aiAdvice = aiProvider.getWeatherAdvice(data.name, data.main.temp, data.weather.get(0).description);
+
+
             prefsManager.saveWeatherData(
+                    aiAdvice,
                     data.name,
                     data.main.temp,
                     data.weather.get(0).description,
@@ -83,7 +88,7 @@ public class WeatherUpdater extends Worker {
                     data.main.pressure,
                     data.weather.get(0).icon,
                     data.wind.deg,
-                    data.cloud.allcloud
+                    data.clouds.all
             );
             Response<ResponseBody> hourlyResponse = service.getForecast(cityName, API_KEY, "metric", "tr", 24).execute();
             if (hourlyResponse.isSuccessful() && hourlyResponse.body() != null) {
@@ -137,9 +142,9 @@ public class WeatherUpdater extends Worker {
         public List<Weather> weather;
         public Wind wind;
         public String name;
-        public Cloud cloud;
+        public Cloud clouds;
         public static class Cloud{
-            public int allcloud;
+            public int all;
         }
 
         public static class Main {

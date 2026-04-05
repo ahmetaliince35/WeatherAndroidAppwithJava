@@ -3,18 +3,15 @@ package com.example.weatherapp.Helpers;
 import android.content.Context;
 import android.util.Log;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
-
-import com.example.weatherapp.WeatherUpdater;
 
 import java.util.concurrent.TimeUnit;
 
 public class AutoUpdateConfig {
     public static void setupAutoUpdate(Context context ) {
+        Log.d("Setup","burada sıkıntı yok");
         PeriodicWorkRequest weatherUpdateRequest = new PeriodicWorkRequest.Builder(
                 WeatherUpdater.class,
                 12,
