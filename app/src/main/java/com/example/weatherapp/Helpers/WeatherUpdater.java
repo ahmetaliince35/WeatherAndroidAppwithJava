@@ -74,7 +74,7 @@ public class WeatherUpdater extends Worker {
             WeatherResponse data = response.body();
 
             GeminiPrompter aiProvider = new GeminiPrompter();
-            String aiAdvice = aiProvider.getWeatherAdvice(data.name, data.main.temp, data.weather.get(0).description);
+            String aiAdvice = aiProvider.getWeatherAdvice(data.name, data.main.temp, data.weather.get(0).description,data.weather.get(0).icon);
 
 
             prefsManager.saveWeatherData(

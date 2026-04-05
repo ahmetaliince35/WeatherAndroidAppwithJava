@@ -252,7 +252,6 @@ private void setupRecyclerView()
             public void onClick(View v) {
                 String city = editTextCity.getText().toString().trim();
                 if (!city.isEmpty()) {
-                    progressBar.setVisibility(View.VISIBLE);
                     currentCity = city;
                     getWeatherData(currentCity);
                     buttonClearAll.setEnabled(true);
@@ -440,6 +439,7 @@ private void setupRecyclerView()
     private void getCurrentLocation()
     {
         Toast.makeText(this,"Konum Alınıyor",Toast.LENGTH_SHORT).show();
+        progressBar.setVisibility(View.VISIBLE);
         locationGetter.getCurrentLocation(new LocationGetter.LocationCallback() {
             @Override
             public void onLocationReceived(String cityName) {
@@ -452,7 +452,7 @@ private void setupRecyclerView()
             @Override
             public void onLocationError(String error)
             {
-
+                progressBar.setVisibility(View.INVISIBLE);
                 Toast.makeText(MainActivity.this,error,Toast.LENGTH_SHORT).show();
             }
         });
@@ -460,6 +460,7 @@ private void setupRecyclerView()
 
     private void getWeatherData(String city)
     {
+        progressBar.setVisibility(View.VISIBLE);
         WeatherJsonAPI repo = new WeatherJsonAPI(this, URL_API.CurrentURL);
         repo.getWeather(city,true, new WeatherJsonAPI.WeatherCallback() {
             @Override
@@ -535,11 +536,10 @@ private void setupRecyclerView()
         Log.d("MAİNDENEME","Gelen veri:"+AIAdvice);
         if (AIAdvice != null && !AIAdvice.isEmpty()) {
             textViewAIAdvice.setText(AIAdvice);
-        } else if (textViewAIAdvice.getText().toString().isEmpty()) {
+        } else {
             // Eğer her iki tarafta boşsa bir placeholder yaz
             textViewAIAdvice.setText("AI önerisi bekleniyor...");
         }
-        textViewAIAdvice.setText(AIAdvice);
         textViewCityName.setText(cityName !=null ? cityName:" --");
         textViewTemperature.setText(String.format("%.1f°C", temperature));
         textViewDescription.setText(description != null ? description.substring(0, 1).toUpperCase() + description.substring(1): "--");

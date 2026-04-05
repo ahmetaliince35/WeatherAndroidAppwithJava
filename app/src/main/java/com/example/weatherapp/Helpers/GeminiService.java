@@ -7,7 +7,7 @@ import retrofit2.http.Query;
 
 public interface GeminiService {
     // 2.5 veya 1.5 Flash sürümüne göre endpoint'i buraya yazıyoruz
-    @POST("v1beta/models/gemini-2.5-flash:generateContent")
+    @POST("v1beta/models/gemini-2.5-flash-lite:generateContent")
     Call<GeminiModels.Response> getRecommendation(
             @Query("key") String apiKey,
             @Body GeminiModels.Request request

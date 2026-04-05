@@ -111,7 +111,7 @@ public class WeatherJsonAPI {
                             new Thread(() -> {
                                 try {
                                 GeminiPrompter aiProvider = new GeminiPrompter();
-                                String advice = aiProvider.getWeatherAdvice(data.cityName, data.temp, data.description);
+                                String advice = aiProvider.getWeatherAdvice(data.cityName, data.temp, data.description,data.icon);
                                 data.AIAdvice=advice;
                             } catch (Exception e) {
                                 Log.d(TAG,"Hata: " +e);

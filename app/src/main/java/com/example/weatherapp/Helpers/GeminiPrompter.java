@@ -21,12 +21,13 @@ public class GeminiPrompter {
         service = retrofit.create(GeminiService.class);
     }
 
-    public String getWeatherAdvice(String city, double temp, String desc) {
+    public String getWeatherAdvice(String city, double temp, String desc,String icon) {
+        String dayOrnight =icon.endsWith("d")? "gündüz" : "gece";
         // AI'ya ne sormak istediğini burada kurguluyoruz (Prompt)
         String prompt = String.format(
-                "%s şehrinde hava şu an %.1f derece ve %s. " +
-                        "Bana Türkçe, samimi ve kısa (max 20 kelime) bir giyim veya aktivite önerisi verir misin?",
-                city, temp, desc
+                "%s şehrinde  şu an %s vakti ve  hava  %.1f derece ve %s. " +
+                        "Bana Türkçe olarak bu bilgilere göre 20 kelimeyi geçmeyecek şekilde havayı yorumlayıp o ana göre bir öneri ver.",
+                city,dayOrnight, temp, desc
         );
 
         try {
