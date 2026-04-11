@@ -55,7 +55,6 @@ weatherapp2/
 
 
 ## Screenshots
-
+| *Main Screen* | *Favori city list* | *5-day forecast screen* |
 | :---: | :---: | :---: |
 | <img src="appScreenshots/screenshotParis.jpg" width="280"> | <img src="appScreenshots/screenshotFavoriCities.jpg" width="280"> | <img src="appScreenshots/screenshotIstanbul_5day.jpg" width="280"> |
-| *Current weather & AI advice(Paris)* | *Favori city list* | *5-day detailed forecast(Istanbul)* |
