@@ -56,7 +56,6 @@ weatherapp2/
 
 ## Screenshots
 
-| Main Screen | 5-Day Forecast | Hourly (3-Hour) |
 | :---: | :---: | :---: |
-| <img src="appScreenshots/screenshotParis.jpg" width="280"> | <img src="appScreenshots/screenshotFavoriCities.jpg" width="280"> | <img src="appScreenshots/screenshotIstanbul5_day.jpg" width="280"> |
-| *Current weather & AI advice(Paris)* | *Favori city list* | *72-hour detailed forecast(Istanbul)* |
+| <img src="appScreenshots/screenshotParis.jpg" width="280"> | <img src="appScreenshots/screenshotFavoriCities.jpg" width="280"> | <img src="appScreenshots/screenshotIstanbul_5day.jpg" width="280"> |
+| *Current weather & AI advice(Paris)* | *Favori city list* | *5-day detailed forecast(Istanbul)* |
