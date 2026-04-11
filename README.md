@@ -50,6 +50,9 @@ weatherapp2/
 │               └── values/         # Colors, strings, and themes
 ├── build.gradle.kts                # Project-level build settings
 └── local.properties                # Hidden file for your secret API keys.
+```
+
+
 
 
 
@@ -65,8 +68,6 @@ weatherapp2/
 
 
 ## Screenshots
-
-| Main Screen | 5-Day Forecast | Hourly (3-Hour) |
-| :---: | :---: | :---: |
-| <img src="appScreenshots/screenshotParis.jpg" width="280"> | <img src="appScreenshots/screenshotFavoriCities.jpg" width="280"> | <img src="appScreenshots/screenshotIstanbul5_day.jpg" width="280"> |
-| *Current weather & AI advice(Paris)* | *Favori city list* | *72-hour detailed forecast(Istanbul)* |
+| *Main Screen* | *Favori city list* | *5-day forecast screen* | *Main Screen with AI Advice* |
+| :---: | :---: | :---: | :---: |
+| <img src="appScreenshots/screenshotParis.jpg" width="280"> | <img src="appScreenshots/screenshotFavoriCities.jpg" width="280"> | <img src="appScreenshots/screenshotIstanbul_5day.jpg" width="280"> | src="appScreenshots/screenshotIgdirAIADvice.jpg" width="280"> |
