@@ -49,7 +49,9 @@ weatherapp2/
 │               ├── drawable/       # Background images and weather icons
 │               └── values/         # Colors, strings, and themes
 ├── build.gradle.kts                # Project-level build settings
-└── local.properties                # Hidden file for your secret API keys.
+└── local.properties                # Hidden file for your secret API keys. ```
+
+
 
 ## Screenshots
 
