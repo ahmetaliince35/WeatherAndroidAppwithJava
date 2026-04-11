@@ -299,7 +299,7 @@ private void setupRecyclerView()
 
                 currentCity = "";
                 isSaveLocation = false;
-                textViewAIAdvice.setText("Verilebilecek bir bok tavsiye yok");
+                textViewAIAdvice.setText("Verilebilecek bir hava durumu tavsiyesi yok");
                 textViewCityName.setText("Şehir yok");
                 textViewTemperature.setText("--°C");
                 textViewDescription.setText("---");

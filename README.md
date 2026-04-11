@@ -51,6 +51,19 @@ weatherapp2/
 ├── build.gradle.kts                # Project-level build settings
 └── local.properties                # Hidden file for your secret API keys.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Screenshots
 
 | Main Screen | 5-Day Forecast | Hourly (3-Hour) |
