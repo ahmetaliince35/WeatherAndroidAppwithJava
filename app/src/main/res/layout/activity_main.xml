@@ -15,44 +15,62 @@
         android:orientation="vertical"
         android:padding="20dp">
 
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+    <TextView
+        android:id="@+id/openFavoriCities"
+        android:layout_width="0dp"
+        android:layout_height="75dp"
+        android:layout_weight="0.1"
+        android:layout_marginTop="15dp"
+        android:textColor="#000000"
+        android:text="☰"
+        android:fontFamily="sans-serif-medium"
+        android:textSize="30dp"/>
 
+    <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.8"
+                android:layout_marginBottom="20dp"
+                android:layout_marginLeft="0dp"
+                app:cardCornerRadius="15dp"
+                app:cardBackgroundColor="#000000">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="10dp">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/editTextCity"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Şehir adı girin"
+                        android:inputType="text"
+                        android:padding="12dp"
+                        android:textSize="16sp"
+                        android:textColor="#ffffff"
+                        android:completionThreshold="1"/>
+
+                    <Button
+                        android:id="@+id/buttonSearch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ara"
+                        android:textColor="#ffffff"
+                        android:backgroundTint="#4f6d7a"
+                        android:padding="12dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
 
         <!-- Şehir Arama Kartı -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardCornerRadius="15dp"
-            app:cardBackgroundColor="#000000">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="10dp">
-
-                <AutoCompleteTextView
-                    android:id="@+id/editTextCity"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Şehir adı girin"
-                    android:inputType="text"
-                    android:padding="12dp"
-                    android:textSize="16sp"
-                    android:textColor="#ffffff"
-                    android:completionThreshold="1"/>
-
-                <Button
-                    android:id="@+id/buttonSearch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Ara"
-                    android:textColor="#ffffff"
-                    android:backgroundTint="#4f6d7a"
-                    android:padding="12dp"/>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"

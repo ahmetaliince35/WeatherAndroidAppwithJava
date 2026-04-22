@@ -1,5 +1,7 @@
 package com.example.weatherapp;
 
+import static android.view.View.VISIBLE;
+
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -65,6 +67,7 @@ public class MainActivity extends AppCompatActivity
     private TextView textViewLastUpdate;
     private TextView textViewCloudiness;
     private TextView textViewAIAdvice;
+    private TextView textViewopenFavoriCities;
     private ImageView imageViewWeatherIcon;
     private ImageView windDirect;
     private ScrollView root;
@@ -101,6 +104,12 @@ public class MainActivity extends AppCompatActivity
         AutoUpdateConfig.setupAutoUpdate(getApplicationContext());
         AutoUpdateConfig.setupAutoUpdateFavoriCities(getApplicationContext());
 
+        textViewopenFavoriCities.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                drawerLayout.openDrawer(Gravity.START);
+            }
+        });
         setupAutoComplete();
         loadSavedWeather();
         buttonClicked();
@@ -125,6 +134,7 @@ public class MainActivity extends AppCompatActivity
         textViewPressure = findViewById(R.id.textViewPressure);
         textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
         textViewAIAdvice=findViewById(R.id.TextViewAIAdvice);
+        textViewopenFavoriCities=findViewById(R.id.openFavoriCities);
         progressBar=findViewById(R.id.progressBar);
         windDirect=findViewById(R.id.imageViewWindTurbine);
         imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
@@ -439,7 +449,7 @@ private void setupRecyclerView()
     private void getCurrentLocation()
     {
         Toast.makeText(this,"Konum Alınıyor",Toast.LENGTH_SHORT).show();
-        progressBar.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(VISIBLE);
         locationGetter.getCurrentLocation(new LocationGetter.LocationCallback() {
             @Override
             public void onLocationReceived(String cityName) {
@@ -460,7 +470,7 @@ private void setupRecyclerView()
 
     private void getWeatherData(String city)
     {
-        progressBar.setVisibility(View.VISIBLE);
+        progressBar.setVisibility(VISIBLE);
         WeatherJsonAPI repo = new WeatherJsonAPI(this, URL_API.CurrentURL);
         repo.getWeather(city,true, new WeatherJsonAPI.WeatherCallback() {
             @Override

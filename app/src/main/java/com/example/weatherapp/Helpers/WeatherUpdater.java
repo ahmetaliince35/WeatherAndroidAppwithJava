@@ -149,7 +149,7 @@ public class WeatherUpdater extends Worker {
 
         public static class Main {
             public double temp;
-            public double humidity;
+            public int humidity;
             public double feels_like;
             public int pressure;
         }

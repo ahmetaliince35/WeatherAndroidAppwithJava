@@ -50,7 +50,7 @@ public class ForecastAdapter extends RecyclerView.Adapter<ForecastAdapter.Foreca
         holder.textViewDescription.setText(description.substring(0, 1).toUpperCase() +
                 description.substring(1));
 
-        holder.textViewHumidity.setText(String.format(Locale.getDefault(), "Nem:%.0f",item.getHumidity()));
+        holder.textViewHumidity.setText(String.format(Locale.getDefault(), "Nem: %% %.0f",item.getHumidity()));
         holder.textViewWind.setText(String.format(Locale.getDefault(), "Rüzgar hızı: %.0fkm/s", item.getWindSpeed()));
         if(description.contains("kar") || item.getTemperature()<=0)
         {

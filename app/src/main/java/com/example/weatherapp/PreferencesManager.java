@@ -109,9 +109,9 @@ public static synchronized PreferencesManager getInstance(Context context)
         }
     }
 
-    public double getHumidity() {
+    public int getHumidity() {
         try {
-            double humidity = preferences.getInt("humidity", 0);
+            int humidity = preferences.getInt("humidity", 0);
             Log.d(TAG, "getHumidity: " + humidity);
             return humidity;
         } catch (Exception e) {
@@ -185,7 +185,7 @@ public static synchronized PreferencesManager getInstance(Context context)
     }
 
     public void saveWeatherData(String advice,String city, double temp, String desc,
-                                double humidity, double wind,
+                                int humidity, double wind,
                                 double feels, int pressure, String icon,float windDegree,int cloudiness) {
         try {
             SharedPreferences.Editor editor = preferences.edit();
@@ -193,7 +193,7 @@ public static synchronized PreferencesManager getInstance(Context context)
             editor.putString("city", city);
             editor.putLong("temp", (long) temp);
             editor.putString("desc", desc);
-            editor.putLong("humidity",(long) humidity);
+            editor.putInt("humidity",humidity);
             editor.putLong("wind", (long) wind);
             editor.putLong("feels", (long) feels);
             editor.putInt("pressure", pressure);
