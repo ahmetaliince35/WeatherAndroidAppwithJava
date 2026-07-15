@@ -28,14 +28,12 @@ public class WeatherJsonAPI {
 
     private static final String API_KEY = URL_API.API_KEY;
     private static final String TAG="WeatherJsonAPI";
-    private  final String BASE_URL;
     private final  RequestQueue requestQueue;
     private Context context;
     PreferencesManager preferencesManager;
-    public WeatherJsonAPI(Context context,String BASE_URL) {
+    public WeatherJsonAPI(Context context ) {
         this.context=context.getApplicationContext();
         requestQueue = Volley.newRequestQueue(context);
-        this.BASE_URL=BASE_URL;
         preferencesManager=PreferencesManager.getInstance(context.getApplicationContext());
     }
 
@@ -73,8 +71,8 @@ public class WeatherJsonAPI {
     }
 
     // Hava durumu verisini çek
-    public void getWeather(String cityName,boolean isAIactive, final WeatherCallback callback) {
-        String url = BASE_URL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr";
+    public void getWeatherfromOpenWEatherMAp(String cityName,boolean isAIactive, final WeatherCallback callback) {
+        String url = URL_API.CurrentURL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr";
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
@@ -143,9 +141,102 @@ public class WeatherJsonAPI {
 
         requestQueue.add(request);
     }
+    public void getWeatherFromMGM(String cityName,String townName, boolean isAIactive, final WeatherCallback callback) {
+        // Kendi hazırladığın MGM API URL'ini buraya yaz
+        String url = "http://192.168.1.104:8000/weather?city=" + cityName + "&town="+townName;
+
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.GET,
+                url,
+                null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            WeatherData data = new WeatherData();
+
+                            // MGM JSON formatına göre eşlemeleri yapıyoruz
+                            data.cityName = response.getString("city");
+
+                            data.temp = Double.parseDouble(
+                                    response.getString("temperature").replace(",", ".")
+                            );
+
+                            data.humidity = Integer.parseInt(
+                                    response.getString("humidity")
+                            );
+
+                                data.pressure = (int)Double.parseDouble(
+                                        response.getString("pressure").replace(",", ".")
+                                );
+
+                            data.description = response.getString("weatherStatus");
+
+                            data.windSpeed = Double.parseDouble(
+                                    response.getString("windSpeed").replace(",", ".")
+                            );
+
+
+                            // Yağış
+                            data.cloudiness = (int)Double.parseDouble(
+                                    response.getString("precipitation").replace(",", ".")
+                            );
+
+
+                            // Yapay zeka tavsiyesi (Mevcut mantığın birebir aynısı)
+                            if (isAIactive) {
+                                new Thread(() -> {
+                                    try {
+                                        GeminiPrompter aiProvider = new GeminiPrompter();
+                                        String advice = aiProvider.getWeatherAdvice(data.cityName, data.temp, data.description, data.icon);
+                                        data.AIAdvice = advice;
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "AI Hatası: " + e);
+                                    } finally {
+                                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                                            callback.onSuccess(data);
+                                        });
+                                    }
+                                }).start();
+                            } else {
+                                callback.onSuccess(data);
+                            }
+
+                        } catch (JSONException e) {
+                            Log.e(TAG, "MGM Parse Hatası: " + e);
+                            callback.onError("MGM verisi işlenirken hata oluştu.");
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // Logcat'e hatanın tüm detayını basıyoruz
+                        Log.e(TAG, "MGM API Bağlantı Hatası Detayı: ", error);
+
+                        if (error.networkResponse != null) {
+                            Log.e(TAG, "Durum Kodu: " + error.networkResponse.statusCode);
+                            try {
+                                String responseBody = new String(error.networkResponse.data, "utf-8");
+                                Log.e(TAG, "Sunucudan Dönen Hata Mesajı: " + responseBody);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Hata içeriği okunamadı.");
+                            }
+                        }
+                        callback.onError("Bağlantı hatası: " + error.getMessage());
+                    }
+                }
+        );
+        request.setRetryPolicy(new com.android.volley.DefaultRetryPolicy(
+                45000,
+                0,
+                com.android.volley.DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        ));
+        requestQueue.add(request);
+    }
     public void getHourlyForecast(String cityName, final HourlyCallback callback) {
         // 24 veri noktası için cnt=24
-        String url = BASE_URL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr&cnt=24";
+        String url = URL_API.ForecastURL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr&cnt=24";
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
@@ -179,7 +270,7 @@ public class WeatherJsonAPI {
 
 
     public void getDailyForecast(String cityName, final ForecastCallback callback) {
-        String url = BASE_URL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr&cnt=40";
+        String url = URL_API.ForecastURL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr&cnt=40";
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,

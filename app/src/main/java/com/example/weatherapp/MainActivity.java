@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity
     private int currentbackround=R.drawable.background;
 
     private String currentCity = "";
+    private String selectedCity="";
     private boolean isNewSearch=false;
     private boolean isSaveLocation;
     private LocationGetter locationGetter;
@@ -202,10 +203,10 @@ private void setupRecyclerView()
                 android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
         editTextCity.setAdapter(adapter);
         editTextCity.setOnItemClickListener((parent, view, position, id) -> {
-            String selected=adapter.getItem(position);
+            selectedCity=adapter.getItem(position);
             adapter.clear();
             adapter.notifyDataSetChanged();
-            editTextCity.setText(selected.split(",")[0]);
+            editTextCity.setText(selectedCity.split("/")[0]);
             editTextCity.dismissDropDown();
         });
         editTextCity.addTextChangedListener(new TextWatcher() {
@@ -471,27 +472,53 @@ private void setupRecyclerView()
     private void getWeatherData(String city)
     {
         progressBar.setVisibility(VISIBLE);
-        WeatherJsonAPI repo = new WeatherJsonAPI(this, URL_API.CurrentURL);
-        repo.getWeather(city,true, new WeatherJsonAPI.WeatherCallback() {
-            @Override
-            public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                progressBar.setVisibility(View.INVISIBLE);
-                updateUI(data.AIAdvice,data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
-                        data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis(),data.cloudiness);
+        WeatherJsonAPI repo = new WeatherJsonAPI(this);
+        /*if(selectedCity.split(",")[1].endsWith("Türkiye"))
+        {
+            String townMGM=selectedCity.split(",")[0].split("/")[0];
+            String cityMGM=selectedCity.split(",")[0].split("/")[1];
+            repo.getWeatherFromMGM(cityMGM,townMGM,true, new WeatherJsonAPI.WeatherCallback() {
+                @Override
+                public void onSuccess(WeatherJsonAPI.WeatherData data) {
+                    progressBar.setVisibility(View.INVISIBLE);
+                    updateUI(data.AIAdvice,data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
+                            data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis(),data.cloudiness);
 
-                tempData=data;
-                showSaveLocationDialog(city);
-                buttonForecast.setEnabled(true);
-                buttonHourlyForecast.setEnabled(true);
-                updateBackgroundByWeather(data.icon,data.description);
-            }
+                    tempData=data;
+                    showSaveLocationDialog(city);
+                    buttonForecast.setEnabled(true);
+                    buttonHourlyForecast.setEnabled(true);
+                    updateBackgroundByWeather(data.icon,data.description);
+                }
 
-            @Override
-            public void onError(String error) {
-                progressBar.setVisibility(View.INVISIBLE);
-                Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
-            }
-        });
+                @Override
+                public void onError(String error) {
+                    progressBar.setVisibility(View.INVISIBLE);
+                    Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }*/
+            repo.getWeatherfromOpenWEatherMAp(city,true, new WeatherJsonAPI.WeatherCallback() {
+                @Override
+                public void onSuccess(WeatherJsonAPI.WeatherData data) {
+                    progressBar.setVisibility(View.INVISIBLE);
+                    updateUI(data.AIAdvice,data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
+                            data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis(),data.cloudiness);
+
+                    tempData=data;
+                    showSaveLocationDialog(city);
+                    buttonForecast.setEnabled(true);
+                    buttonHourlyForecast.setEnabled(true);
+                    updateBackgroundByWeather(data.icon,data.description);
+                }
+
+                @Override
+                public void onError(String error) {
+                    progressBar.setVisibility(View.INVISIBLE);
+                    Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
+                }
+            });
+
     }
 
     private void showSaveLocationDialog(final String cityName) {

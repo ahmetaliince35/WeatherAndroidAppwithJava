@@ -89,7 +89,7 @@ private String LastUpdateTime(boolean isNewSearch)
 }
     private void getForecastData(String city,boolean isNewSearch) {
         progressBar.setVisibility(View.VISIBLE);
-        WeatherJsonAPI dailyData = new WeatherJsonAPI(this, URL_API.ForecastURL);
+        WeatherJsonAPI dailyData = new WeatherJsonAPI(this);
         if (!isNewSearch) {
             List<ForecastItem> cached = dailyData.getCachedDailyForecast();
             if (cached != null && !cached.isEmpty()) {

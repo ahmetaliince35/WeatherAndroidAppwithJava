@@ -19,6 +19,6 @@ public class CityEntity {
     @NonNull
     public String name;
 
-
+    public String province;
     public String country;
 }

@@ -32,10 +32,10 @@ public class FavoriCitiesWorker extends Worker {
             CountDownLatch latch = new CountDownLatch(favorites.size());
 
             for (WeatherEntity city : favorites) {
-                WeatherJsonAPI api = new WeatherJsonAPI(getApplicationContext(), URL_API.CurrentURL);
+                WeatherJsonAPI api = new WeatherJsonAPI(getApplicationContext());
 
                 // DİKKAT: false gönderiyoruz! Favoriler güncellenirken AI çalışmasın.
-                api.getWeather(city.cityName, false, new WeatherJsonAPI.WeatherCallback() {
+                api.getWeatherfromOpenWEatherMAp(city.cityName, false, new WeatherJsonAPI.WeatherCallback() {
                     @Override
                     public void onSuccess(WeatherJsonAPI.WeatherData data) {
                         Executors.newSingleThreadExecutor().execute(() -> {

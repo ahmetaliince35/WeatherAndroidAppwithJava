@@ -96,7 +96,7 @@ private void initialVariables()
     }
     private void getHourlyForecast(boolean isNewSearch) {
         progressBar.setVisibility(View.VISIBLE);
-        WeatherJsonAPI hourlyData = new WeatherJsonAPI(this, URL_API.ForecastURL);
+        WeatherJsonAPI hourlyData = new WeatherJsonAPI(this);
         if (!isNewSearch) {
             List<ForecastItem> cached = hourlyData.getCachedHourlyForecast();
             if (cached != null && !cached.isEmpty()) {
