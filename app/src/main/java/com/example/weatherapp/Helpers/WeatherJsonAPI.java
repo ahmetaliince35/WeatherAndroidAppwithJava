@@ -50,7 +50,7 @@ public class WeatherJsonAPI {
         public String icon;
         public double windSpeed;
         public float windDirection;
-        public int cloudiness;
+        public double cloudiness;
     }
 
     // Callback arayüzü
@@ -103,7 +103,7 @@ public class WeatherJsonAPI {
                             data.windDirection = (float) wind.getDouble("deg");
 
                             JSONObject cloud = response.getJSONObject("clouds");
-                            data.cloudiness = cloud.getInt("all");
+                            data.cloudiness = cloud.getDouble("all");
                             if(isAIactive==true)
                             {
                             new Thread(() -> {
@@ -143,7 +143,7 @@ public class WeatherJsonAPI {
     }
     public void getWeatherFromMGM(String cityName,String townName, boolean isAIactive, final WeatherCallback callback) {
         // Kendi hazırladığın MGM API URL'ini buraya yaz
-        String url = "http://192.168.1.104:8000/weather?city=" + cityName + "&town="+townName;
+        String url = "http://192.168.1.100:8000/weather?city=" + cityName + "&town="+townName;
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
@@ -157,32 +157,43 @@ public class WeatherJsonAPI {
 
                             // MGM JSON formatına göre eşlemeleri yapıyoruz
                             data.cityName = response.getString("city");
-
+                            Log.d("API","Cityname: "+data.cityName);
                             data.temp = Double.parseDouble(
                                     response.getString("temperature").replace(",", ".")
                             );
+                            Log.d("API","temp: "+data.temp);
 
                             data.humidity = Integer.parseInt(
                                     response.getString("humidity")
                             );
+                            String direction=response.getString("windDirection");
+                            if(direction.equals("Kuzeyden")) data.windDirection=0;
+                            else if(direction.equals("Kuzeybatıdan")) data.windDirection=315;
+                            else if(direction.equals("Batıdan")) data.windDirection=270;
+                            else if(direction.equals("Güneybatıdan")) data.windDirection=225;
+                            else if(direction.equals("Güneyden")) data.windDirection=180;
+                            else if(direction.equals("Güneydoğudan")) data.windDirection=135;
+                            else if(direction.equals("Doğudan")) data.windDirection=90;
+                            else  data.windDirection=45;
+                            Log.d("API","humidity: "+data.humidity);
+                            Log.d("API","pressure: "+data.pressure);
 
                                 data.pressure = (int)Double.parseDouble(
                                         response.getString("pressure").replace(",", ".")
                                 );
-
                             data.description = response.getString("weatherStatus");
-
+                            Log.d("API","description: "+data.description);
                             data.windSpeed = Double.parseDouble(
-                                    response.getString("windSpeed").replace(",", ".")
+                                    response.getString("windSpeed")
                             );
-
+                            Log.d("API","wimdspeed: "+data.windSpeed);
 
                             // Yağış
-                            data.cloudiness = (int)Double.parseDouble(
+                            data.cloudiness = Double.parseDouble(
                                     response.getString("precipitation").replace(",", ".")
                             );
-
-
+                            Log.d("API","yagis: "+data.cloudiness);
+                            data.icon=response.getString("weatherStatus");
                             // Yapay zeka tavsiyesi (Mevcut mantığın birebir aynısı)
                             if (isAIactive) {
                                 new Thread(() -> {

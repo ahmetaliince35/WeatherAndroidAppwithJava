@@ -1,6 +1,9 @@
 package com.example.weatherapp;
 
 import static android.view.View.VISIBLE;
+import static android.widget.Toast.LENGTH_LONG;
+
+import static com.example.weatherapp.Helpers.UIUpdate.updateBackgroundByWeather;
 
 import android.Manifest;
 import android.content.DialogInterface;
@@ -48,8 +51,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity
-{
+public class MainActivity extends AppCompatActivity {
     private AutoCompleteTextView editTextCity;
     private Button buttonSearch;
     private Button buttonForecast;
@@ -73,14 +75,15 @@ public class MainActivity extends AppCompatActivity
     private ScrollView root;
     private ProgressBar progressBar;
     private DrawerLayout drawerLayout;
-    private RecyclerView  recyclerFavorites;
+    private RecyclerView recyclerFavorites;
     private List<WeatherEntity> favoriteList;
-    private int currentbackround=R.drawable.background;
+    private int currentbackround = R.drawable.background;
 
     private String currentCity = "";
-    private String selectedCity="";
-    private boolean isNewSearch=false;
+    private String selectedCity ;
+    private boolean isNewSearch = false;
     private boolean isSaveLocation;
+    private boolean isMGM = false;
     private LocationGetter locationGetter;
     private PreferencesManager preferencesManager;
     private WeatherJsonAPI.WeatherData tempData;
@@ -88,8 +91,8 @@ public class MainActivity extends AppCompatActivity
     private AppDatabase citydb;
     private AppDatabase favoritesdb;
     FavoriCityAdapter favoriCityAdapter;
-    private static final int Location_Permission_Request=100;
-    private static final  String TAG="Main Activity";
+    private static final int Location_Permission_Request = 100;
+    private static final String TAG = "Main Activity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,8 +102,8 @@ public class MainActivity extends AppCompatActivity
         connectionDatabase();
         setupRecyclerView();
 
-        locationGetter=new LocationGetter(this);
-        preferencesManager=PreferencesManager.getInstance(this);
+        locationGetter = new LocationGetter(this);
+        preferencesManager = PreferencesManager.getInstance(this);
 
         AutoUpdateConfig.setupAutoUpdate(getApplicationContext());
         AutoUpdateConfig.setupAutoUpdateFavoriCities(getApplicationContext());
@@ -117,93 +120,91 @@ public class MainActivity extends AppCompatActivity
         notificationSettings();
 
     }
-    private void initViews()
-    {
+
+    private void initViews() {
         editTextCity = findViewById(R.id.editTextCity);
 
         buttonSearch = findViewById(R.id.buttonSearch);
         buttonForecast = findViewById(R.id.buttonForecast);
         buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
-        buttonCurrentLocation=findViewById(R.id.buttonCurrentLocation);
-        buttonClearAll=findViewById(R.id.buttonClearAll);
-        textViewCloudiness=findViewById(R.id.textViewCloudiness);
+        buttonCurrentLocation = findViewById(R.id.buttonCurrentLocation);
+        buttonClearAll = findViewById(R.id.buttonClearAll);
+        textViewCloudiness = findViewById(R.id.textViewCloudiness);
         textViewCityName = findViewById(R.id.textViewCityName);
         textViewTemperature = findViewById(R.id.textViewTemperature);
         textViewDescription = findViewById(R.id.textViewDescription);
         textViewHumidity = findViewById(R.id.textViewHumidity);
         textViewWindSpeed = findViewById(R.id.textViewWindSpeed);
         textViewPressure = findViewById(R.id.textViewPressure);
-        textViewLastUpdate=findViewById(R.id.textViewLastUpdate);
-        textViewAIAdvice=findViewById(R.id.TextViewAIAdvice);
-        textViewopenFavoriCities=findViewById(R.id.openFavoriCities);
-        progressBar=findViewById(R.id.progressBar);
-        windDirect=findViewById(R.id.imageViewWindTurbine);
+        textViewLastUpdate = findViewById(R.id.textViewLastUpdate);
+        textViewAIAdvice = findViewById(R.id.TextViewAIAdvice);
+        textViewopenFavoriCities = findViewById(R.id.openFavoriCities);
+        progressBar = findViewById(R.id.progressBar);
+        windDirect = findViewById(R.id.imageViewWindTurbine);
         imageViewWeatherIcon = findViewById(R.id.imageViewWeatherIcon);
-        drawerLayout=findViewById(R.id.drawerlayout);
-        recyclerFavorites=findViewById(R.id.recyclerFavorites);
+        drawerLayout = findViewById(R.id.drawerlayout);
+        recyclerFavorites = findViewById(R.id.recyclerFavorites);
         root = findViewById(R.id.rootScroll);
-        saveFavorites=findViewById(R.id.buttonAddFavori);
-        deleteFavories=findViewById(R.id.buttondeleteALlFavori);
+        saveFavorites = findViewById(R.id.buttonAddFavori);
+        deleteFavories = findViewById(R.id.buttondeleteALlFavori);
     }
 
-private void connectionDatabase()
-{
-    citydb= Room.databaseBuilder(getApplicationContext(),
-                    AppDatabase.class,"weather_db.db")
-            .fallbackToDestructiveMigration()
-            .createFromAsset("weather.db").build();
+    private void connectionDatabase() {
+        citydb = Room.databaseBuilder(getApplicationContext(),
+                        AppDatabase.class, "weather_db.db")
+                .fallbackToDestructiveMigration()
+                .createFromAsset("weather.db").build();
 
-favoritesdb=AppDatabase.getInstance(getApplicationContext());
-}
-private void setupRecyclerView()
-{
-    favoriteList = new ArrayList<>();
+        favoritesdb = AppDatabase.getInstance(getApplicationContext());
+    }
 
-    favoriCityAdapter = new FavoriCityAdapter(favoriteList, new FavoriCityAdapter.OnCityAction() {
-        @Override
-        public void onClick(WeatherEntity city) {
-         currentCity=city.cityName;
-         isNewSearch=true;
-         isSaveLocation=false;
-         getWeatherData(currentCity);
-         drawerLayout.closeDrawer(Gravity.START);
-        }
+    private void setupRecyclerView() {
+        favoriteList = new ArrayList<>();
 
-        @Override
-        public void onDelete(WeatherEntity city) {
-            new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("Şehri Sil")
-                    .setMessage(city.cityName + " favorilerden silinsin mi?")
-                    .setPositiveButton("Evet", (dialog, which) -> {
-                        Executors.newSingleThreadExecutor().execute(() -> {
-                            // Veritabanından sil
-                            favoritesdb.weatherDao().deleteByCity(city.cityName);
-                        });
-                    })
-                    .setNegativeButton("Hayır", null)
-                    .show();
-        }
+        favoriCityAdapter = new FavoriCityAdapter(favoriteList, new FavoriCityAdapter.OnCityAction() {
+            @Override
+            public void onClick(WeatherEntity city) {
+                currentCity = city.cityName;
+                isNewSearch = true;
+                isSaveLocation = false;
+                getWeatherfromOpenWeatherMap(currentCity);
+                drawerLayout.closeDrawer(Gravity.START);
+            }
 
-    });
-    recyclerFavorites.setLayoutManager(new LinearLayoutManager(this));
-    recyclerFavorites.setAdapter(favoriCityAdapter);
-    favoritesdb.weatherDao().getAllFavorites().observe(this, newList -> {
-        if (newList != null) {
-            favoriteList.clear();
-            favoriteList.addAll(newList);
-            favoriCityAdapter.notifyDataSetChanged();
-            Log.d("LIVE_DATA", "Liste otomatik güncellendi. Eleman sayısı: " + newList.size());
-        }
-    });
-}
+            @Override
+            public void onDelete(WeatherEntity city) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Şehri Sil")
+                        .setMessage(city.cityName + " favorilerden silinsin mi?")
+                        .setPositiveButton("Evet", (dialog, which) -> {
+                            Executors.newSingleThreadExecutor().execute(() -> {
+                                // Veritabanından sil
+                                favoritesdb.weatherDao().deleteByCity(city.cityName);
+                            });
+                        })
+                        .setNegativeButton("Hayır", null)
+                        .show();
+            }
 
-    private void setupAutoComplete()
-    {
+        });
+        recyclerFavorites.setLayoutManager(new LinearLayoutManager(this));
+        recyclerFavorites.setAdapter(favoriCityAdapter);
+        favoritesdb.weatherDao().getAllFavorites().observe(this, newList -> {
+            if (newList != null) {
+                favoriteList.clear();
+                favoriteList.addAll(newList);
+                favoriCityAdapter.notifyDataSetChanged();
+                Log.d("LIVE_DATA", "Liste otomatik güncellendi. Eleman sayısı: " + newList.size());
+            }
+        });
+    }
+
+    private void setupAutoComplete() {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
         editTextCity.setAdapter(adapter);
         editTextCity.setOnItemClickListener((parent, view, position, id) -> {
-            selectedCity=adapter.getItem(position);
+            selectedCity = adapter.getItem(position);
             adapter.clear();
             adapter.notifyDataSetChanged();
             editTextCity.setText(selectedCity.split("/")[0]);
@@ -211,13 +212,14 @@ private void setupRecyclerView()
         });
         editTextCity.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 final String input = s.toString();
                 Executors.newSingleThreadExecutor().execute(() -> {
-                    List<String> cityNames=CitySearchDB.GetCityList(input,citydb);
+                    List<String> cityNames = CitySearchDB.GetCityList(input, citydb);
                     runOnUiThread(() -> {
                         adapter.clear();
                         adapter.addAll(cityNames);
@@ -226,29 +228,31 @@ private void setupRecyclerView()
                     });
                 });
             }
+
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         });
 
     }
+
     private void loadSavedWeather() {
 
-        if (preferencesManager.getSavedCityName()==null) return;
-        if(preferencesManager.getIcon()!= null)
-        {
-            updateBackgroundByWeather(preferencesManager.getIcon(),preferencesManager.getDesc());
+        if (preferencesManager.getSavedCityName() == null) return;
+        if (preferencesManager.getIcon() != null) {
+            updateBackgroundByWeather(preferencesManager.getIcon(), preferencesManager.getDesc());
         }
         currentCity = preferencesManager.getSavedCityName();
         buttonForecast.setEnabled(true);
         buttonHourlyForecast.setEnabled(true);
         updateUI(
+                isMGM,
                 preferencesManager.getAIAdvice(),
                 preferencesManager.getSavedCityName(),
                 preferencesManager.getTemp(),
                 preferencesManager.getDesc(),
                 preferencesManager.getHumidity(),
                 preferencesManager.getWind(),
-                preferencesManager.getFeels(),
                 preferencesManager.getPressure(),
                 preferencesManager.getIcon(),
                 preferencesManager.getWindDegree(),
@@ -256,17 +260,18 @@ private void setupRecyclerView()
                 preferencesManager.getCloudiness()
         );
     }
-    private void buttonClicked()
-    {
+
+    private void buttonClicked() {
         buttonSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String city = editTextCity.getText().toString().trim();
                 if (!city.isEmpty()) {
                     currentCity = city;
-                    getWeatherData(currentCity);
+                    if(selectedCity!=null&& selectedCity.split(",")[1].contains("Türkiye"))showChooseMGMorOWMDialog(currentCity);
+                    else getWeatherfromOpenWeatherMap(currentCity);
                     buttonClearAll.setEnabled(true);
-                    isNewSearch=true;
+                    isNewSearch = true;
                 } else {
                     Toast.makeText(MainActivity.this, "Lütfen şehir adı girin", Toast.LENGTH_SHORT).show();
                 }
@@ -279,9 +284,9 @@ private void setupRecyclerView()
                 if (!currentCity.isEmpty()) {
                     Intent intent = new Intent(MainActivity.this, Forecastactivity.class);
                     intent.putExtra("CITY_NAME", currentCity);
-                    intent.putExtra("background-res",currentbackround);
-                    intent.putExtra("isNewSearch",isNewSearch);
-                    intent.putExtra("isSaveLocation",isSaveLocation);
+                    intent.putExtra("background-res", currentbackround);
+                    intent.putExtra("isNewSearch", isNewSearch);
+                    intent.putExtra("isSaveLocation", isSaveLocation);
                     startActivity(intent);
                 } else {
                     Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
@@ -294,9 +299,9 @@ private void setupRecyclerView()
                 if (!currentCity.isEmpty()) {
                     Intent intent = new Intent(MainActivity.this, Hourlyforecastactivity.class);
                     intent.putExtra("CITY_NAME", currentCity);
-                    intent.putExtra("background-res",currentbackround);
-                    intent.putExtra("isNewSearch",isNewSearch);
-                    intent.putExtra("isSaveLocation",isSaveLocation);
+                    intent.putExtra("background-res", currentbackround);
+                    intent.putExtra("isNewSearch", isNewSearch);
+                    intent.putExtra("isSaveLocation", isSaveLocation);
                     startActivity(intent);
                 } else {
                     Toast.makeText(MainActivity.this, "Önce bir şehir arayın", Toast.LENGTH_SHORT).show();
@@ -334,10 +339,10 @@ private void setupRecyclerView()
 
         saveFavorites.setOnClickListener(new View.OnClickListener() {
             FavoriCities favoriCities = new FavoriCities(favoritesdb);
+
             @Override
             public void onClick(View v) {
-                if (tempData == null)
-                {
+                if (tempData == null) {
                     Toast.makeText(MainActivity.this, "Önce bir şehir araması yapmalısın!", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -385,8 +390,7 @@ private void setupRecyclerView()
     }
 
 
-    private void notificationSettings()
-    {
+    private void notificationSettings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher = registerForActivityResult(
                     new ActivityResultContracts.RequestPermission(),
@@ -414,27 +418,22 @@ private void setupRecyclerView()
     }
 
 
-    private void getPermission()
-    {
+    private void getPermission() {
 
-        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED&&
-        ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED)
-        {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
                     Location_Permission_Request);
             return;
-        }
-        else
-        {
+        } else {
             getCurrentLocation();
         }
 
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
-    {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == Location_Permission_Request) {
@@ -447,81 +446,88 @@ private void setupRecyclerView()
         }
     }
 
-    private void getCurrentLocation()
-    {
-        Toast.makeText(this,"Konum Alınıyor",Toast.LENGTH_SHORT).show();
+    private void getCurrentLocation() {
+        Toast.makeText(this, "Konum Alınıyor", Toast.LENGTH_SHORT).show();
         progressBar.setVisibility(VISIBLE);
         locationGetter.getCurrentLocation(new LocationGetter.LocationCallback() {
             @Override
             public void onLocationReceived(String cityName) {
-                currentCity=cityName;
-                isNewSearch= true;
-                getWeatherData(currentCity);
+                currentCity = cityName;
+                isNewSearch = true;
+                getWeatherfromOpenWeatherMap(currentCity);
 
-                Toast.makeText(MainActivity.this,"Konum: "+cityName,Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Konum: " + cityName, Toast.LENGTH_SHORT).show();
             }
+
             @Override
-            public void onLocationError(String error)
-            {
+            public void onLocationError(String error) {
                 progressBar.setVisibility(View.INVISIBLE);
-                Toast.makeText(MainActivity.this,error,Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void getWeatherData(String city)
-    {
+    private void getWeatherfromMGM() {
         progressBar.setVisibility(VISIBLE);
         WeatherJsonAPI repo = new WeatherJsonAPI(this);
-        /*if(selectedCity.split(",")[1].endsWith("Türkiye"))
-        {
-            String townMGM=selectedCity.split(",")[0].split("/")[0];
-            String cityMGM=selectedCity.split(",")[0].split("/")[1];
-            repo.getWeatherFromMGM(cityMGM,townMGM,true, new WeatherJsonAPI.WeatherCallback() {
+        if (selectedCity.split(",")[1].endsWith("Türkiye")) {
+            isMGM = true;
+            String townMGM = selectedCity.split(",")[0].split("/")[0];
+            String cityMGM = selectedCity.split(",")[0].split("/")[1];
+            repo.getWeatherFromMGM(cityMGM, townMGM, true, new WeatherJsonAPI.WeatherCallback() {
+
                 @Override
                 public void onSuccess(WeatherJsonAPI.WeatherData data) {
                     progressBar.setVisibility(View.INVISIBLE);
-                    updateUI(data.AIAdvice,data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
-                            data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis(),data.cloudiness);
+                    updateUI(isMGM, data.AIAdvice, data.cityName, data.temp, data.description, data.humidity, data.windSpeed,
+                            data.pressure, data.icon, data.windDirection, System.currentTimeMillis(), data.cloudiness);
 
-                    tempData=data;
-                    showSaveLocationDialog(city);
-                    buttonForecast.setEnabled(true);
-                    buttonHourlyForecast.setEnabled(true);
-                    updateBackgroundByWeather(data.icon,data.description);
+                    tempData = data;
+                    buttonForecast.setEnabled(false);
+                    buttonHourlyForecast.setEnabled(false);
+                    updateBackgroundByWeather(data.icon, data.description);
                 }
 
                 @Override
                 public void onError(String error) {
                     progressBar.setVisibility(View.INVISIBLE);
-                    Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "MGM den veri çekerken hata meydana geldi OpenWeatherMap den veri çekiliyor.", Toast.LENGTH_SHORT).show();
+                    getWeatherfromOpenWeatherMap(selectedCity);
                 }
             });
-        }*/
-            repo.getWeatherfromOpenWEatherMAp(city,true, new WeatherJsonAPI.WeatherCallback() {
-                @Override
-                public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                    progressBar.setVisibility(View.INVISIBLE);
-                    updateUI(data.AIAdvice,data.cityName, data.temp, data.description, data.humidity, data.windSpeed*3.6,
-                            data.feelsLike, data.pressure, data.icon,data.windDirection,System.currentTimeMillis(),data.cloudiness);
+            isMGM=false;
+        }
+    }
 
-                    tempData=data;
-                    showSaveLocationDialog(city);
-                    buttonForecast.setEnabled(true);
-                    buttonHourlyForecast.setEnabled(true);
-                    updateBackgroundByWeather(data.icon,data.description);
-                }
+    private void getWeatherfromOpenWeatherMap(String city) {
+        final String il = city.contains("/") ? city.split("/")[0] : city;
+        progressBar.setVisibility(VISIBLE);
+        WeatherJsonAPI repo = new WeatherJsonAPI(this);
+        repo.getWeatherfromOpenWEatherMAp(il, true, new WeatherJsonAPI.WeatherCallback() {
+            @Override
+            public void onSuccess(WeatherJsonAPI.WeatherData data) {
+                progressBar.setVisibility(View.INVISIBLE);
+                updateUI(isMGM, data.AIAdvice, data.cityName, data.temp, data.description, data.humidity, data.windSpeed * 3.6,
+                        data.pressure, data.icon, data.windDirection, System.currentTimeMillis(), data.cloudiness);
 
-                @Override
-                public void onError(String error) {
-                    progressBar.setVisibility(View.INVISIBLE);
-                    Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
-                }
-            });
+                tempData = data;
+                showSaveLocationDialog(il);
+                buttonForecast.setEnabled(true);
+                buttonHourlyForecast.setEnabled(true);
+                updateBackgroundByWeather(data.icon, data.description);
+            }
+
+            @Override
+            public void onError(String error) {
+                progressBar.setVisibility(View.INVISIBLE);
+                Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+
 
     }
 
-    private void showSaveLocationDialog(final String cityName) {
+    private void showSaveLocationDialog( String cityName) {
         new AlertDialog.Builder(this)
                 .setTitle("Konum Kaydet")
                 .setMessage(cityName + " konumunu varsayılan olarak kaydetmek ister misiniz?\n\n" +
@@ -534,20 +540,19 @@ private void setupRecyclerView()
                         // Konumu kaydet
                         preferencesManager.saveLocation(cityName);
                         preferencesManager.updateLastUpdateTime();
-                        isSaveLocation=true;
-                        if(tempData!=null)
-                        {
+                        isSaveLocation = true;
+                        if (tempData != null) {
                             preferencesManager.saveWeatherData(
-                                    tempData.AIAdvice,tempData.cityName,tempData.temp,tempData.description,
-                                    tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
-                                    tempData.pressure,tempData.icon,tempData.windDirection,tempData.cloudiness);
-                            updateUI(tempData.AIAdvice,tempData.cityName,tempData.temp,tempData.description,
-                                    tempData.humidity,tempData.windSpeed*3.6,tempData.feelsLike,
-                                    tempData.pressure,tempData.icon,tempData.windDirection,preferencesManager.getLastUpdateTime(),tempData.cloudiness);
+                                    tempData.AIAdvice, tempData.cityName, tempData.temp, tempData.description,
+                                    tempData.humidity, tempData.windSpeed * 3.6, tempData.feelsLike,
+                                    tempData.pressure, tempData.icon, tempData.windDirection, tempData.cloudiness);
+                            updateUI(isMGM, tempData.AIAdvice, tempData.cityName, tempData.temp, tempData.description,
+                                    tempData.humidity, tempData.windSpeed * 3.6,
+                                    tempData.pressure, tempData.icon, tempData.windDirection, preferencesManager.getLastUpdateTime(), tempData.cloudiness);
                         }
                         Toast.makeText(MainActivity.this,
                                 cityName + " varsayılan konum olarak kaydedildi",
-                                Toast.LENGTH_LONG).show();
+                                LENGTH_LONG).show();
 
                     }
                 })
@@ -557,7 +562,29 @@ private void setupRecyclerView()
                         Toast.makeText(MainActivity.this,
                                 "Konum kaydedilmedi. İstediğiniz zaman tekrar alabilirsiniz.",
                                 Toast.LENGTH_SHORT).show();
-                        isSaveLocation=false;
+                        isSaveLocation = false;
+                    }
+
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    private void showChooseMGMorOWMDialog(String cityName) {
+        new AlertDialog.Builder(this)
+                .setTitle("Hangi kaynağı kullanmak istiyorsunuz?")
+                .setMessage(cityName + " için 2 veri kaynağı seçeneğimiz var. OpenWeatherMap ve MGM.\n\n" +
+                        "Dilediğinizi seçebilirsiniz. MGM henüz geliştirillme aşamsında olduğu için hatalar olabilir.")
+                .setPositiveButton("MGM", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        getWeatherfromMGM();
+                    }
+                })
+                .setNegativeButton("OWM", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        getWeatherfromOpenWeatherMap(cityName);
                     }
 
                 })
@@ -566,43 +593,52 @@ private void setupRecyclerView()
     }
 
 
-
-
-    private void updateUI(String AIAdvice,String cityName, double temperature, String description,
-                          double humidity, double windSpeed, double feelsLike, int pressure, String icon,float winddirection,long timestamp,int cloudiness) {
-        Log.d("MAİNDENEME","Gelen veri:"+AIAdvice);
+    private void updateUI(boolean isMgm, String AIAdvice, String cityName,
+                          double temperature, String description,
+                          double humidity, double windSpeed, int pressure, String icon, float winddirection,
+                          long timestamp, double cloudiness) {
+        Log.d("MAİNDENEME", "Gelen veri:" + AIAdvice);
+        if (isMgm) {
+            textViewCloudiness.setText("Toplam Yağış: " + cloudiness + " mm");
+        } else {
+            textViewCloudiness.setText("Bulut Oranı: %" + cloudiness);
+        }
         if (AIAdvice != null && !AIAdvice.isEmpty()) {
             textViewAIAdvice.setText(AIAdvice);
         } else {
             // Eğer her iki tarafta boşsa bir placeholder yaz
             textViewAIAdvice.setText("AI önerisi bekleniyor...");
         }
-        textViewCityName.setText(cityName !=null ? cityName:" --");
+        if (pressure == 0) textViewPressure.setText("Veri Yok!");
+        else textViewPressure.setText("Basınç: " + pressure + " hPa");
+        textViewCityName.setText(cityName != null ? cityName : " --");
         textViewTemperature.setText(String.format("%.1f°C", temperature));
-        textViewDescription.setText(description != null ? description.substring(0, 1).toUpperCase() + description.substring(1): "--");
+        textViewDescription.setText(description != null ? description.substring(0, 1).toUpperCase() + description.substring(1) : "--");
         textViewHumidity.setText("Nem: " + humidity + "%");
         textViewWindSpeed.setText((String.format(Locale.getDefault(), "Rüzgar hızı: %.0f km/s", windSpeed)));
-        textViewPressure.setText("Basınç: " + pressure + " hPa");
-        windDirect.setRotation(winddirection+180);
-        textViewCloudiness.setText("Bulut Oranı: %"+ cloudiness);
+        windDirect.setRotation(winddirection + 180);
+
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
         String updateTime = sdf.format(new Date(timestamp));
         textViewLastUpdate.setText("Son güncelleme: " + updateTime);
 
         // Hava durumu ikonunu ayarlama
-        if(icon != null) setWeatherIcon(icon,description);
+        if (icon != null) setWeatherIcon(icon, description);
 
     }
 
-    private void setWeatherIcon(String icon,String description) {
+    private void setWeatherIcon(String icon, String description) {
         // İkon koduna göre drawable kaynak ayarlama
-        int iconResource= UIUpdate.setWeatherIcon(icon,description);
+        int iconResource = UIUpdate.setWeatherIcon(icon, description);
         imageViewWeatherIcon.setImageResource(iconResource);
     }
-    private void updateBackgroundByWeather(String iconCode,String description) {
-     int backgroundRes= UIUpdate.updateBackgroundByWeather(iconCode,description);
-            currentbackround=backgroundRes;
-            root.setBackgroundResource(currentbackround);
-            recyclerFavorites.setBackgroundResource(R.drawable.general_component_background);
+
+    private void updateBackgroundByWeather(String iconCode, String description) {
+        int backgroundRes = UIUpdate.updateBackgroundByWeather(iconCode, description);
+        currentbackround = backgroundRes;
+        root.setBackgroundResource(currentbackround);
+        recyclerFavorites.setBackgroundResource(R.drawable.general_component_background);
     }
 }
+
+
