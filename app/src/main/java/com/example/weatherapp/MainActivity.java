@@ -495,11 +495,11 @@ public class MainActivity extends AppCompatActivity {
                     getWeatherfromOpenWeatherMap(selectedCity);
                 }
             });
-            isMGM=false;
         }
     }
 
     private void getWeatherfromOpenWeatherMap(String city) {
+        isMGM=false;
         final String il = city.contains("/") ? city.split("/")[0] : city;
         progressBar.setVisibility(VISIBLE);
         WeatherJsonAPI repo = new WeatherJsonAPI(this);
