@@ -1,7 +1,6 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from fastapi import FastAPI, HTTPException
 import random
-import time
 
 app = FastAPI()
 
@@ -47,7 +46,6 @@ def get_weather(city: str, town: str):
 
             page = context.new_page()
 
-            # webdriver bilgisini gizle
             page.add_init_script("""
                 Object.defineProperty(
                     navigator,
@@ -69,15 +67,15 @@ def get_weather(city: str, town: str):
                 timeout=60000
             )
 
-            # Sayfanın tamamen yüklenmesi için biraz bekle
             page.wait_for_timeout(
                 random.randint(2000, 4000)
             )
 
             print("MGM URL:", page.url)
 
-            # Hava durumu elemanının gelmesini bekle
+            # Sıcaklık ana veri olduğu için gelmesini bekliyoruz.
             try:
+
                 page.locator(
                     ".anlik-sicaklik-deger"
                 ).first.wait_for(
@@ -96,66 +94,99 @@ def get_weather(city: str, town: str):
                 )
 
             # --------------------------------------------------
-            # Verileri oku
+            # Yardımcı fonksiyonlar
             # --------------------------------------------------
 
-            temperature = (
-                page.locator(
-                    ".anlik-sicaklik-deger"
-                ).first.inner_text().strip()
-                or "0"
+            def get_text(selector: str, default: str = "Veri Yok"):
+
+                try:
+                    value = page.locator(selector).first.inner_text().strip()
+
+                    if not value:
+                        return default
+
+                    return value
+
+                except Exception:
+                    return default
+
+            def get_attribute(
+                selector: str,
+                attribute: str,
+                default: str = "Veri Yok"
+            ):
+
+                try:
+                    value = page.locator(
+                        selector
+                    ).first.get_attribute(attribute)
+
+                    if value is None or not value.strip():
+                        return default
+
+                    return value.strip()
+
+                except Exception:
+                    return default
+
+            # --------------------------------------------------
+            # Verileri al
+            # --------------------------------------------------
+
+            # Numeric değerler
+            temperature = get_text(
+                ".anlik-sicaklik-deger",
+                "0"
             )
 
-            humidity = (
-                page.locator(
-                    ".anlik-nem-deger-kac"
-                ).first.inner_text().strip()
-                or "0"
+            humidity = get_text(
+                ".anlik-nem-deger-kac",
+                "0"
             )
 
-            pressure = (
-                page.locator(
-                    ".anlik-dibasinc-deger-kac"
-                ).first.inner_text().strip()
-                or "0"
+            pressure = get_text(
+                ".anlik-dibasinc-deger-kac",
+                "0"
             )
 
-            precipitation = (
-                page.locator(
-                    ".anlik-yagis-deger-kac"
-                ).first.inner_text().strip()
-                or "0"
+            precipitation = get_text(
+                ".anlik-yagis-deger-kac",
+                "0"
             )
 
-            wind_direction = (
-                page.locator(
-                    ".anlik-ruzgar-ikon"
-                ).get_attribute("title")
-                or "0"
+            wind_speed = get_text(
+                ".anlik-ruzgar-deger-kac",
+                "0"
             )
 
-            wind_speed = (
-                page.locator(
-                    ".anlik-ruzgar-deger-kac"
-                ).first.inner_text().strip()
-                or "0"
+            # String değerler
+            wind_direction = get_attribute(
+                ".anlik-ruzgar-ikon",
+                "title",
+                "Veri Yok"
             )
 
-            weather_status = (
-                page.locator(
-                    ".imgAD"
-                ).get_attribute("title")
-                or "0"
+            weather_status = get_attribute(
+                ".imgAD",
+                "title",
+                "Veri Yok"
             )
+
+            # --------------------------------------------------
+            # Sonuç
+            # --------------------------------------------------
 
             return {
                 "city": f"{city}/{town}",
+
                 "temperature": temperature,
                 "humidity": humidity,
                 "pressure": pressure,
                 "precipitation": precipitation,
+
                 "windDirection": wind_direction,
                 "windSpeed": wind_speed,
+
                 "weatherStatus": weather_status
             }
 
