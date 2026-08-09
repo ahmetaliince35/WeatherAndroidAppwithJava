@@ -8,6 +8,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.weatherapp.BuildConfig;
 import com.example.weatherapp.ForecastItem;
 import com.example.weatherapp.PreferencesManager;
 
@@ -143,8 +144,7 @@ public class WeatherJsonAPI {
     }
     public void getWeatherFromMGM(String cityName,String townName, boolean isAIactive, final WeatherCallback callback) {
         // Kendi hazırladığın MGM API URL'ini buraya yaz
-        String url = "http://10.194.59.42:8000/weather?city=" + cityName + "&town="+townName;
-
+        String url= BuildConfig.MGM_URL+ "/weather?city="+ cityName + "&town=" + townName;
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
                 url,

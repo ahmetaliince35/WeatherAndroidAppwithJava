@@ -27,6 +27,9 @@ android {
 
         val geminiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+
+        val mgmUrl = localProperties.getProperty("MGM_URL") ?: ""
+        buildConfigField("String","MGM_URL","\"$mgmUrl\"")
     }
 
     buildTypes {
