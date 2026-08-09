@@ -143,7 +143,7 @@ public class WeatherJsonAPI {
     }
     public void getWeatherFromMGM(String cityName,String townName, boolean isAIactive, final WeatherCallback callback) {
         // Kendi hazırladığın MGM API URL'ini buraya yaz
-        String url = "http://192.168.1.100:8000/weather?city=" + cityName + "&town="+townName;
+        String url = "http://10.194.59.42:8000/weather?city=" + cityName + "&town="+townName;
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
