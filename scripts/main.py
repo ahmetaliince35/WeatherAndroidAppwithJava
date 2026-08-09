@@ -1,56 +1,189 @@
-import unicodedata
-from fastapi import FastAPI
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+from fastapi import FastAPI, HTTPException
+import random
+import time
 
 app = FastAPI()
 
-def tr_slugify(text: str) -> str:
-    if not text:
-        return ""
-    text = text.replace("İ", "i").replace("I", "i").replace("ı", "i")
-    text = text.lower()
-    text = unicodedata.normalize('NFD', text)
-    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
-    return text.strip()
 
-def get_weather(city, town):
-    clean_city = tr_slugify(city)
-    clean_town = tr_slugify(town)
+def get_weather(city: str, town: str):
 
     with sync_playwright() as p:
-        browser = playwright.chromium.launch(headless=True)
 
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={'width': 1920, 'height': 1080},
-            locale="tr-TR"
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-gpu",
+            ]
         )
 
-        page = context.new_page()
+        try:
 
-        # Steer clear of automation detection (Olası ek bot korumalarını aşmak için)
-        page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            context = browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/138.0.0.0 Safari/537.36"
+                ),
+                viewport={
+                    "width": 1920,
+                    "height": 1080
+                },
+                locale="tr-TR",
+                timezone_id="Europe/Istanbul",
+                extra_http_headers={
+                    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Accept": (
+                        "text/html,application/xhtml+xml,"
+                        "application/xml;q=0.9,image/avif,image/webp,"
+                        "image/apng,*/*;q=0.8"
+                    ),
+                    "Upgrade-Insecure-Requests": "1",
+                }
+            )
 
-        # Yönlendirmeyi denerken timeout ve wait_until değerini esnetin:
-        page.goto(
-            f"https://www.mgm.gov.tr/tahmin/il-ve-ilceler.aspx?il={city}&ilce={town}",
-            wait_until="commit", # "domcontentloaded" yerine "commit" verinin ilk geldiği anı yakalar
-            timeout=30000
-        )
+            page = context.new_page()
+
+            # webdriver bilgisini gizle
+            page.add_init_script("""
+                Object.defineProperty(
+                    navigator,
+                    'webdriver',
+                    {
+                        get: () => undefined
+                    }
+                );
+            """)
+
+            url = (
+                "https://www.mgm.gov.tr/tahmin/"
+                f"il-ve-ilceler.aspx?il={city}&ilce={town}"
+            )
+
+            page.goto(
+                url,
+                wait_until="domcontentloaded",
+                timeout=60000
+            )
+
+            # Sayfanın tamamen yüklenmesi için biraz bekle
+            page.wait_for_timeout(
+                random.randint(2000, 4000)
+            )
+
+            print("MGM URL:", page.url)
+
+            # Hava durumu elemanının gelmesini bekle
+            try:
+                page.locator(
+                    ".anlik-sicaklik-deger"
+                ).first.wait_for(
+                    state="visible",
+                    timeout=15000
+                )
+
+            except PlaywrightTimeoutError:
+
+                print("Hava durumu elementi bulunamadı.")
+                print("Sayfa başlığı:", page.title())
+
+                raise HTTPException(
+                    status_code=503,
+                    detail="MGM hava durumu verisi şu anda alınamıyor."
+                )
+
+            # --------------------------------------------------
+            # Verileri oku
+            # --------------------------------------------------
+
+            temperature = (
+                page.locator(
+                    ".anlik-sicaklik-deger"
+                ).first.inner_text().strip()
+                or "0"
+            )
+
+            humidity = (
+                page.locator(
+                    ".anlik-nem-deger-kac"
+                ).first.inner_text().strip()
+                or "0"
+            )
+
+            pressure = (
+                page.locator(
+                    ".anlik-dibasinc-deger-kac"
+                ).first.inner_text().strip()
+                or "0"
+            )
+
+            precipitation = (
+                page.locator(
+                    ".anlik-yagis-deger-kac"
+                ).first.inner_text().strip()
+                or "0"
+            )
+
+            wind_direction = (
+                page.locator(
+                    ".anlik-ruzgar-ikon"
+                ).get_attribute("title")
+                or "0"
+            )
+
+            wind_speed = (
+                page.locator(
+                    ".anlik-ruzgar-deger-kac"
+                ).first.inner_text().strip()
+                or "0"
+            )
+
+            weather_status = (
+                page.locator(
+                    ".imgAD"
+                ).get_attribute("title")
+                or "0"
+            )
 
             return {
-                "city": city + "/" + town,
-                "temperature": page.locator(".anlik-sicaklik-deger").first.inner_text().strip() if page.locator(".anlik-sicaklik-deger").count() > 0 else "0",
-                "humidity": page.locator(".anlik-nem-deger-kac").first.inner_text().strip() if page.locator(".anlik-nem-deger-kac").count() > 0 else "0",
-                "pressure": page.locator(".anlik-dibasinc-deger-kac").first.inner_text().strip() if page.locator(".anlik-dibasinc-deger-kac").count() > 0 else "0",
-                "precipitation": page.locator(".anlik-yagis-deger-kac").first.inner_text().strip() if page.locator(".anlik-yagis-deger-kac").count() > 0 else "0",
-                "windDirection": page.locator(".anlik-ruzgar-ikon").first.get_attribute("title") if page.locator(".anlik-ruzgar-ikon").count() > 0 else "0",
-                "windSpeed": page.locator(".anlik-ruzgar-deger-kac").first.inner_text().strip() if page.locator(".anlik-ruzgar-deger-kac").count() > 0 else "0",
-                "weatherStatus": page.locator(".imgAD").first.get_attribute("title") if page.locator(".imgAD").count() > 0 else "0"
+                "city": f"{city}/{town}",
+                "temperature": temperature,
+                "humidity": humidity,
+                "pressure": pressure,
+                "precipitation": precipitation,
+                "windDirection": wind_direction,
+                "windSpeed": wind_speed,
+                "weatherStatus": weather_status
             }
+
+        except PlaywrightTimeoutError:
+
+            raise HTTPException(
+                status_code=504,
+                detail="MGM sunucusundan cevap alınamadı."
+            )
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
+
+            print("MGM Hatası:", str(e))
+
+            raise HTTPException(
+                status_code=500,
+                detail=f"Hava durumu alınırken hata oluştu: {str(e)}"
+            )
+
         finally:
+
             browser.close()
+
 
 @app.get("/weather")
 def weather(city: str, town: str):
+
     return get_weather(city, town)
