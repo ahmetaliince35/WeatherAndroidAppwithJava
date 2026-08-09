@@ -18,18 +18,25 @@ def get_weather(city, town):
     clean_town = tr_slugify(town)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        try:
-            page = browser.new_page(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/138.0.0.0 Safari/537.36"
-            )
-            # URL'de il ve ilce parametreleri arasına & koyuldu ve karakterler duzeltildi
-            page.goto(
-                f"https://www.mgm.gov.tr/tahmin/il-ve-ilceler.aspx?il={clean_city}&ilce={clean_town}",
-                wait_until="domcontentloaded",
-                timeout=60000
-            )
-            page.wait_for_timeout(3000)
+        browser = playwright.chromium.launch(headless=True)
+
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={'width': 1920, 'height': 1080},
+            locale="tr-TR"
+        )
+
+        page = context.new_page()
+
+        # Steer clear of automation detection (Olası ek bot korumalarını aşmak için)
+        page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+        # Yönlendirmeyi denerken timeout ve wait_until değerini esnetin:
+        page.goto(
+            f"https://www.mgm.gov.tr/tahmin/il-ve-ilceler.aspx?il={city}&ilce={town}",
+            wait_until="commit", # "domcontentloaded" yerine "commit" verinin ilk geldiği anı yakalar
+            timeout=30000
+        )
 
             return {
                 "city": city + "/" + town,
