@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonHourlyForecast;
     private Button saveFavorites;
     private Button deleteFavories;
+    private Button seePastedData;
     private TextView textViewCityName;
     private TextView textViewTemperature;
     private TextView textViewDescription;
@@ -129,6 +130,7 @@ public class MainActivity extends AppCompatActivity {
         buttonHourlyForecast = findViewById(R.id.buttonHourlyForecast);
         buttonCurrentLocation = findViewById(R.id.buttonCurrentLocation);
         buttonClearAll = findViewById(R.id.buttonClearAll);
+        seePastedData=findViewById(R.id.btnStations);
         textViewCloudiness = findViewById(R.id.textViewCloudiness);
         textViewCityName = findViewById(R.id.textViewCityName);
         textViewTemperature = findViewById(R.id.textViewTemperature);
@@ -386,6 +388,11 @@ public class MainActivity extends AppCompatActivity {
                         .setNegativeButton("Vazgeç", null)
                         .show();
             }
+        });
+        seePastedData.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, pastDailyData.class);
+            intent.putExtra("background-res", currentbackround);
+            startActivity(intent);
         });
     }
 

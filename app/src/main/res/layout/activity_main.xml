@@ -406,6 +406,19 @@
                 android:layout_marginStart="5dp"
                 app:cornerRadius="15dp"/>
             </LinearLayout>
+            <Button
+                android:id="@+id/btnStations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="20dp"
+                android:text="Geçmiş Hava Durumu İstasyonları"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:padding="16dp"
+                android:backgroundTint="#5A5B68" />
         </LinearLayout>
     </ScrollView>
     <LinearLayout

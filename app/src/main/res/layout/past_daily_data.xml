@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <AutoCompleteTextView
+        android:id="@+id/etSearchStation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="İstasyon ara"
+        android:inputType="text"
+        android:imeOptions="actionDone"
+        android:singleLine="true"
+        android:completionThreshold="1" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvWeatherData"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="12dp" />
+
+</LinearLayout>

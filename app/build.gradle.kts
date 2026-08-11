@@ -30,6 +30,9 @@ android {
 
         val mgmUrl = localProperties.getProperty("MGM_URL") ?: ""
         buildConfigField("String","MGM_URL","\"$mgmUrl\"")
+
+        val meteostatKEY=localProperties.getProperty("MeteostatKEY") ?: ""
+        buildConfigField("String","METEOSTAT_KEY","\"$meteostatKEY\"")
     }
 
     buildTypes {

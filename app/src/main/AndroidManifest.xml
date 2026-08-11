@@ -18,33 +18,45 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Weatherapp"
         android:usesCleartextTraffic="true">
+
         <!-- Saatlik tahmin aktivitesi -->
         <activity
             android:name=".Hourlyforecastactivity"
             android:exported="false"
             android:parentActivityName=".MainActivity"
-            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"/>
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
-<!-- 5 günlük tahmin aktivitesi -->
+        <!-- 5 günlük tahmin aktivitesi -->
         <activity
             android:name=".Forecastactivity"
             android:exported="false"
             android:parentActivityName=".MainActivity"
-            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"/>
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
+
+        <!-- Geçmiş günlük veriler aktivitesi -->
+        <activity
+            android:name=".pastDailyData"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
         <meta-data
             android:name="android.support.PARENT_ACTIVITY"
             android:value=".MainActivity" />
-<!-- Main aktivite -->
+
+        <!-- Main aktivite -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
+
     </application>
 
 </manifest>

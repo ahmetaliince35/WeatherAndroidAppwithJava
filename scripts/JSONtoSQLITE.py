@@ -3,8 +3,8 @@ import sqlite3
 import csv
 
 # DB oluştur ve değişiklik yapılacağında kullan.
-conn = sqlite3.connect("weather.db")
-cursor = conn.cursor()
+#conn = sqlite3.connect("weather.db")
+#cursor = conn.cursor()
 
 
 
@@ -88,7 +88,66 @@ cursor = conn.cursor()
 #           INSERT INTO cities(id, name, country, province)
 #               VALUES (?, ?, ?, ?)"""
 #          , (ilce_kodu, ilce, "TR", il))
-cursor.execute("SELECT count(*) FROM cities where country='TR'")
-print(cursor.fetchone())
+#cursor.execute("SELECT count(*) FROM cities where country='TR'")
+#print(cursor.fetchone())
+#conn.commit()
+#conn.close()
+"""
+import json
+import sqlite3
+
+JSON_FILE = "full.json"
+DB_FILE = "stations.db"
+
+# JSON'u oku
+with open(JSON_FILE, "r", encoding="utf-8") as file:
+    data = json.load(file)
+
+# SQLite bağlantısı
+conn = sqlite3.connect(DB_FILE)
+cursor = conn.cursor()
+
+# Tabloyu oluştur
+cursor.execute("""
+    #CREATE TABLE stations (
+     #   id TEXT NOT NULL PRIMARY KEY,
+      #  name TEXT NOT NULL,
+       # country TEXT
+    #)
+""")
+
+# Index oluştur
+cursor.execute("""
+    #CREATE INDEX index_stations_name
+    #ON stations(name)
+""")
+
+# Verileri ekle
+for station in data:
+    station_id = station.get("id")
+
+    name_data = station.get("name", {})
+    name = name_data.get("en")
+
+    country = station.get("country")
+
+    # Gerekli alanlar yoksa atla
+    if not station_id or not name:
+        continue
+
+    cursor.execute("""
+        #INSERT INTO stations (id, name, country)
+        #VALUES (?, ?, ?)
+   # """, (station_id, name, country))
+"""
 conn.commit()
+
+# Kontrol
+cursor.execute("SELECT COUNT(*) FROM stations")
+count = cursor.fetchone()[0]
+
+print(f"{count} istasyon veritabanına eklendi.")
+
 conn.close()
+
+print(f"Database oluşturuldu: {DB_FILE}")"""
