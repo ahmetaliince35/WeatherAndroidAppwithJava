@@ -1,12 +1,7 @@
 package com.example.weatherapp.Helpers;
 
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.example.weatherapp.FavoriCityAdapter;
-import com.example.weatherapp.data.AppDatabase;
-import com.example.weatherapp.data.WeatherEntity;
-
-import java.util.List;
+import com.example.weatherapp.data.Databases.AppDatabase;
+import com.example.weatherapp.data.Entities.WeatherEntity;
 
 public class FavoriCities {
     AppDatabase db;

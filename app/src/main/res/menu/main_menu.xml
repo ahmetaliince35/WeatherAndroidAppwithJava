@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_provider"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="Veri Kaynağı"
+        app:showAsAction="always">
+        <menu>
+            <item
+                android:id="@+id/provider_owm"
+                android:title="OpenWeatherMap (OWM)" />
+            <item
+                android:id="@+id/provider_open_meteo"
+                android:title="Open-Meteo" />
+            <item
+                android:id="@+id/provider_weather_api"
+                android:title="WeatherAPI" />
+            <item
+                android:id="@+id/provider_visual_crossing"
+                android:title="Visual-Crossing" />
+        </menu>
+    </item>
+</menu>

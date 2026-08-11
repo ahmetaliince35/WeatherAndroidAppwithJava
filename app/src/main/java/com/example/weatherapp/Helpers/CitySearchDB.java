@@ -1,6 +1,6 @@
 package com.example.weatherapp.Helpers;
-import com.example.weatherapp.data.AppDatabase;
-import com.example.weatherapp.data.CityEntity;
+import com.example.weatherapp.data.Databases.AppDatabase;
+import com.example.weatherapp.data.Entities.CityEntity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;

@@ -21,34 +21,34 @@
 
         <!-- Saatlik tahmin aktivitesi -->
         <activity
-            android:name=".Hourlyforecastactivity"
+            android:name=".Activities.Hourlyforecastactivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName=".Activities.MainActivity"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
         <!-- 5 günlük tahmin aktivitesi -->
         <activity
-            android:name=".Forecastactivity"
+            android:name=".Activities.Forecastactivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName=".Activities.MainActivity"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
         <!-- Geçmiş günlük veriler aktivitesi -->
         <activity
-            android:name=".pastDailyData"
+            android:name=".Activities.pastDailyData"
             android:exported="false"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName=".Activities.MainActivity"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
         <meta-data
             android:name="android.support.PARENT_ACTIVITY"
-            android:value=".MainActivity" />
+            android:value=".Activities.MainActivity" />
 
         <!-- Main aktivite -->
         <activity
-            android:name=".MainActivity"
+            android:name=".Activities.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
+            android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

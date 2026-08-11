@@ -33,6 +33,12 @@ android {
 
         val meteostatKEY=localProperties.getProperty("MeteostatKEY") ?: ""
         buildConfigField("String","METEOSTAT_KEY","\"$meteostatKEY\"")
+
+        val weatherAPIKey=localProperties.getProperty("weatherAPIKey") ?: ""
+        buildConfigField("String","weatherAPIKey","\"$weatherAPIKey\"")
+
+        val visualCrossingKey=localProperties.getProperty("visualCrossingKey") ?: ""
+        buildConfigField("String","visualCrossingKey","\"$visualCrossingKey\"")
     }
 
     buildTypes {
