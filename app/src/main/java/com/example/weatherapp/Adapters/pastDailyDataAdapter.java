@@ -40,28 +40,39 @@ public class pastDailyDataAdapter extends RecyclerView.Adapter<pastDailyDataAdap
 
     @Override
     public void onBindViewHolder(@NonNull WeatherViewHolder holder, int position) {
+        if (weatherList == null || position < 0 || position >= weatherList.size()) return;
         DailyWeather weather = weatherList.get(position);
+        if (weather == null) return;
 
-        // Tarih formatını sadece YYYY-MM-DD yap (00:00 veya saat bilgisini temizle)
-        String cleanDate = "";
-        if (weather.date != null) {
-            cleanDate = weather.date.split(" ")[0]; // "2026-08-11 00:00:00" -> "2026-08-11"
+        String cleanDate = "--";
+        if (weather.date != null && !weather.date.trim().isEmpty()) {
+            cleanDate = weather.date.contains(" ") ? weather.date.split(" ")[0] : weather.date;
+            try {
+                java.text.SimpleDateFormat parser = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault());
+                java.util.Date d = parser.parse(cleanDate);
+                if (d != null) {
+                    java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("dd MMM yyyy", new java.util.Locale("tr", "TR"));
+                    cleanDate = fmt.format(d);
+                }
+            } catch (Exception ignored) {}
         }
 
-        // Başlıkta sadece İstasyon Adı ve Sadece Tarih göster
-        holder.tvStationName.setText(stationName + " (" + cleanDate + ")");
-        holder.tvStationCountry.setText(stationCountry);
+        String safeStationName = stationName != null ? stationName : "";
+        String safeStationCountry = stationCountry != null ? stationCountry : "";
 
-        holder.tvPrecipitation.setText(weather.precipitation != null ? weather.precipitation + " mm" : "-- mm");
-        holder.tvPressure.setText(weather.pressure != null ? weather.pressure + " hPa" : "-- hPa");
-        holder.tvMinTemperature.setText(weather.minTemperature != null ? weather.minTemperature + " °C" : "-- °C");
-        holder.tvMaxTemperature.setText(weather.maxTemperature != null ? weather.maxTemperature + " °C" : "-- °C");
-        holder.tvWindSpeed.setText(weather.windSpeed != null ? weather.windSpeed + " km/h" : "-- km/h");
+        holder.tvStationName.setText(safeStationName + " (" + cleanDate + ")");
+        holder.tvStationCountry.setText(safeStationCountry);
+
+        holder.tvPrecipitation.setText(weather.precipitation != null ? String.format(java.util.Locale.getDefault(), "%.1f mm", weather.precipitation) : "-- mm");
+        holder.tvPressure.setText(weather.pressure != null ? String.format(java.util.Locale.getDefault(), "%.0f hPa", weather.pressure) : "-- hPa");
+        holder.tvMinTemperature.setText(weather.minTemperature != null ? String.format(java.util.Locale.getDefault(), "%.1f °C", weather.minTemperature) : "-- °C");
+        holder.tvMaxTemperature.setText(weather.maxTemperature != null ? String.format(java.util.Locale.getDefault(), "%.1f °C", weather.maxTemperature) : "-- °C");
+        holder.tvWindSpeed.setText(weather.windSpeed != null ? String.format(java.util.Locale.getDefault(), "%.1f km/h", weather.windSpeed) : "-- km/h");
     }
 
     @Override
     public int getItemCount() {
-        return weatherList.size();
+        return weatherList != null ? weatherList.size() : 0;
     }
 
     public static class WeatherViewHolder extends RecyclerView.ViewHolder {

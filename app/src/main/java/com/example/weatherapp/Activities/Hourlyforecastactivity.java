@@ -16,6 +16,7 @@ import com.example.weatherapp.Helpers.ForecastItem;
 import com.example.weatherapp.Helpers.WeatherReceiver.WeatherRepository;
 import com.example.weatherapp.Helpers.WeatherReceiver.WeatherJsonAPI;
 import com.example.weatherapp.generalFeatures.PreferencesManager;
+import com.example.weatherapp.generalFeatures.WeatherWidgetProvider;
 import com.example.weatherapp.R;
 
 import java.text.SimpleDateFormat;
@@ -36,9 +37,11 @@ public class Hourlyforecastactivity extends AppCompatActivity {
     private TextView lastUpdateTime;
     private String cityName;
     private String provider;
-    private LinearLayout root;
+    private String vcModel;
+    private View root;
     private int backGroundRes;
     private PreferencesManager preferencesManager;
+    private com.example.weatherapp.Helpers.charts.FeatureTrendManager trendManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,7 +51,7 @@ public class Hourlyforecastactivity extends AppCompatActivity {
         initialVariables();
         getIntents();
 
-        textViewTitle.setText(cityName + " - 72 Saatlik Tahmin");
+        textViewTitle.setText(getString(R.string.hourly_forecast_title_label, cityName != null ? cityName : ""));
         root.setBackgroundResource(backGroundRes);
 
         hourlyList = new ArrayList<>();
@@ -56,25 +59,38 @@ public class Hourlyforecastactivity extends AppCompatActivity {
         recyclerViewHourly.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewHourly.setAdapter(adapter);
 
+        View trendLayout = findViewById(R.id.trendSectionLayout);
+        trendManager = new com.example.weatherapp.Helpers.charts.FeatureTrendManager(trendLayout);
+
         String lastupdateTimeStr = LastUpdateTime(isNewSearch);
-        lastUpdateTime.setText("Son Güncelleme: " + lastupdateTimeStr);
+        lastUpdateTime.setText(getString(R.string.last_update_label, lastupdateTimeStr, getProviderDisplayName()));
 
         getHourlyForecast(isNewSearch);
     }
 
     private void getIntents() {
         cityName = getIntent().getStringExtra("CITY_NAME");
-        provider = getIntent().getStringExtra("PROVIDER");
-        if (provider == null || provider.isEmpty()) {
-            provider = "OWM";
-        }
-
         if (TextUtils.isEmpty(cityName)) {
             cityName = preferencesManager.getSavedCityName();
+        }
+        provider = getIntent().getStringExtra("PROVIDER");
+        if (provider == null || provider.isEmpty()) {
+            provider = preferencesManager.getSelectedProvider();
+        }
+        vcModel = getIntent().getStringExtra("VC_MODEL");
+        if (vcModel == null) {
+            vcModel = preferencesManager.getVisualCrossingModel();
         }
         backGroundRes = getIntent().getIntExtra("background-res", R.drawable.background);
         isNewSearch = getIntent().getBooleanExtra("isNewSearch", false);
         isSaveLocation = getIntent().getBooleanExtra("isSaveLocation", false);
+    }
+
+    private String getProviderDisplayName() {
+        if ("OWM".equalsIgnoreCase(provider)) return "OpenWeatherMap";
+        if ("WEATHER_API".equalsIgnoreCase(provider)) return "WeatherAPI";
+        if ("VISUAL_CROSSING".equalsIgnoreCase(provider)) return "Visual Crossing";
+        return "Open-Meteo";
     }
 
     private void initialVariables() {
@@ -98,29 +114,32 @@ public class Hourlyforecastactivity extends AppCompatActivity {
     }
 
     private void getHourlyForecast(boolean isNewSearch) {
+        if (cityName == null || cityName.isEmpty()) {
+            progressBar.setVisibility(View.GONE);
+            Toast.makeText(Hourlyforecastactivity.this, "Şehir bulunamadı", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         progressBar.setVisibility(View.VISIBLE);
         String cleanCity = cityName.contains("/") ? cityName.split("/")[0].trim() : cityName;
 
-        if (!isNewSearch && "OWM".equalsIgnoreCase(provider)) {
-            WeatherJsonAPI hourlyData = new WeatherJsonAPI(this);
-            List<ForecastItem> cached = hourlyData.getCachedHourlyForecast();
-            if (cached != null && !cached.isEmpty()) {
-                hourlyList.clear();
-                hourlyList.addAll(cached);
-                adapter.notifyDataSetChanged();
-                progressBar.setVisibility(View.GONE);
-                return;
-            }
-        }
-
         WeatherRepository repository = new WeatherRepository(this);
-        repository.getHourlyForecast(provider, cleanCity, new WeatherRepository.ForecastDataCallback() {
+        repository.getHourlyForecast(provider, vcModel, cleanCity, new WeatherRepository.ForecastDataCallback() {
             @Override
             public void onSuccess(List<ForecastItem> newHourlyList) {
                 progressBar.setVisibility(View.GONE);
                 hourlyList.clear();
-                hourlyList.addAll(newHourlyList);
+                if (newHourlyList != null) {
+                    for (ForecastItem item : newHourlyList) {
+                        if (item != null && item.getDate() != null) {
+                            hourlyList.add(item);
+                        }
+                    }
+                }
                 adapter.notifyDataSetChanged();
+                trendManager.setForecastData(hourlyList, true);
+                preferencesManager.saveWidgetHourlyItems(hourlyList);
+                WeatherWidgetProvider.updateAllWidgets(Hourlyforecastactivity.this);
             }
 
             @Override

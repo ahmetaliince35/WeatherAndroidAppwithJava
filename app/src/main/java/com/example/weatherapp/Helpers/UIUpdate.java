@@ -12,7 +12,7 @@ public class UIUpdate {
         String descLower = description.toLowerCase(Locale.forLanguageTag("tr"));
         String iconLower = icon.toLowerCase(Locale.US);
 
-        // 1. VISUAL CROSSING ÖZEL İKON EŞLEŞTİRMESİ
+
         if (iconLower.contains("clear-day")) return R.drawable.icon_sunny;
         if (iconLower.contains("clear-night")) return R.drawable.icon_moon;
         if (iconLower.contains("partly-cloudy-day")) return R.drawable.icon_partlycloudy;
@@ -69,7 +69,6 @@ public class UIUpdate {
             return R.drawable.moony;
         }
 
-        // Visual Crossing & Genel İkon Kontrolü
         if (iconLower.contains("clear-day") || descLower.contains("açık")) return R.drawable.sunny;
         if (iconLower.contains("partly-cloudy") || descLower.contains("parçalı") || descLower.contains("az bulutlu")) return R.drawable.partlycloudy;
         if (iconLower.contains("rain") || iconLower.contains("showers") || descLower.contains("yağmur") || descLower.contains("sağanak")) return R.drawable.rainy;

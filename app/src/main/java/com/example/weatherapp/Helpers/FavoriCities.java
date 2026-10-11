@@ -10,14 +10,15 @@ public class FavoriCities {
     this.db=db;
     }
     public boolean saveToFavorites(String cityName, double temp, String desc, int humidity, double wind, String icon) {
+        if (cityName == null || cityName.trim().isEmpty()) return false;
         if (db.weatherDao().findByCity(cityName) == null) {
             WeatherEntity entity = new WeatherEntity();
 
-            // İlk harfi büyütme mantığı
-            if (cityName != null && !cityName.isEmpty()) {
-                entity.cityName = cityName.substring(0, 1).toUpperCase() + cityName.substring(1).toLowerCase();
+            if (cityName.length() > 1) {
+                entity.cityName = cityName.substring(0, 1).toUpperCase(new java.util.Locale("tr", "TR")) +
+                        cityName.substring(1).toLowerCase(new java.util.Locale("tr", "TR"));
             } else {
-                entity.cityName = cityName;
+                entity.cityName = cityName.toUpperCase(new java.util.Locale("tr", "TR"));
             }
 
             entity.temperature = temp;

@@ -40,7 +40,7 @@ public class WeatherJsonAPI {
         preferencesManager=PreferencesManager.getInstance(context.getApplicationContext());
     }
 
-    // Basit veri sınıfı: sadece çekilen değerleri tutacak
+
     public static class WeatherData {
         public String AIAdvice;
         public String cityName;
@@ -56,13 +56,13 @@ public class WeatherJsonAPI {
         public double cloudiness;
     }
 
-    // Callback arayüzü
+
     public interface WeatherCallback {
         void onSuccess(WeatherData data);
         void onError(String error);
     }
 
-    // Saatlik veri callback arayüzü
+
     public interface HourlyCallback {
         void onSuccess(List<ForecastItem> hourlyList, String json);
         void onError(String error);
@@ -107,27 +107,8 @@ public class WeatherJsonAPI {
 
                             JSONObject cloud = response.getJSONObject("clouds");
                             data.cloudiness = cloud.getDouble("all");
-                            if(isAIactive==true)
-                            {
-                            new Thread(() -> {
-                                try {
-                                GeminiPrompter aiProvider = new GeminiPrompter();
-                                String advice = aiProvider.getWeatherAdvice(data.cityName, data.temp, data.description,data.icon);
-                                data.AIAdvice=advice;
-                            } catch (Exception e) {
-                                Log.d(TAG,"Hata: " +e);
-                            } finally {
-                                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                                    callback.onSuccess(data);
-                                });
-                            }
-                        }).start();
-
-                            }
-                            else
-                            {
-                                callback.onSuccess(data);
-                            }
+                            data.AIAdvice = "";
+                            callback.onSuccess(data);
                         } catch (JSONException e) {
                             Log.d(TAG,"Bir şeyler ters gitti."+e);
                             callback.onError(e.toString());
@@ -144,111 +125,7 @@ public class WeatherJsonAPI {
 
         requestQueue.add(request);
     }
-    public void getWeatherFromMGM(String cityName,String townName, boolean isAIactive, final WeatherCallback callback) {
-        // Kendi hazırladığın MGM API URL'ini buraya yaz
-        String url= BuildConfig.MGM_URL+ "/weather?city="+ cityName + "&town=" + townName;
-        //String url = "http://10.194.59.42:8000/weather?city=" + cityName + "&town="+townName;
 
-        JsonObjectRequest request = new JsonObjectRequest(
-                Request.Method.GET,
-                url,
-                null,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        try {
-                            WeatherData data = new WeatherData();
-
-                            // MGM JSON formatına göre eşlemeleri yapıyoruz
-                            data.cityName = response.getString("city");
-                            Log.d("API","Cityname: "+data.cityName);
-                            data.temp = Double.parseDouble(
-                                    response.getString("temperature").replace(",", ".")
-                            );
-                            Log.d("API","temp: "+data.temp);
-
-                            data.humidity = Integer.parseInt(
-                                    response.getString("humidity")
-                            );
-                            String direction=response.getString("windDirection");
-                            if(direction.equals("Kuzeyden")) data.windDirection=0;
-                            else if(direction.equals("Kuzeybatıdan")) data.windDirection=315;
-                            else if(direction.equals("Batıdan")) data.windDirection=270;
-                            else if(direction.equals("Güneybatıdan")) data.windDirection=225;
-                            else if(direction.equals("Güneyden")) data.windDirection=180;
-                            else if(direction.equals("Güneydoğudan")) data.windDirection=135;
-                            else if(direction.equals("Doğudan")) data.windDirection=90;
-                            else  data.windDirection=45;
-                            Log.d("API","humidity: "+data.humidity);
-                            Log.d("API","pressure: "+data.pressure);
-
-                                data.pressure = (int)Double.parseDouble(
-                                        response.getString("pressure").replace(",", ".")
-                                );
-                            data.description = response.getString("weatherStatus");
-                            Log.d("API","description: "+data.description);
-                            data.windSpeed = Double.parseDouble(
-                                    response.getString("windSpeed")
-                            );
-                            Log.d("API","wimdspeed: "+data.windSpeed);
-
-                            // Yağış
-                            data.cloudiness = Double.parseDouble(
-                                    response.getString("precipitation").replace(",", ".")
-                            );
-                            Log.d("API","yagis: "+data.cloudiness);
-                            data.icon=response.getString("weatherStatus");
-                            // Yapay zeka tavsiyesi (Mevcut mantığın birebir aynısı)
-                            if (isAIactive) {
-                                new Thread(() -> {
-                                    try {
-                                        GeminiPrompter aiProvider = new GeminiPrompter();
-                                        String advice = aiProvider.getWeatherAdvice(data.cityName, data.temp, data.description, data.icon);
-                                        data.AIAdvice = advice;
-                                    } catch (Exception e) {
-                                        Log.e(TAG, "AI Hatası: " + e);
-                                    } finally {
-                                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                                            callback.onSuccess(data);
-                                        });
-                                    }
-                                }).start();
-                            } else {
-                                callback.onSuccess(data);
-                            }
-
-                        } catch (JSONException e) {
-                            Log.e(TAG, "MGM Parse Hatası: " + e);
-                            callback.onError("MGM verisi işlenirken hata oluştu.");
-                        }
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        // Logcat'e hatanın tüm detayını basıyoruz
-                        Log.e(TAG, "MGM API Bağlantı Hatası Detayı: ", error);
-
-                        if (error.networkResponse != null) {
-                            Log.e(TAG, "Durum Kodu: " + error.networkResponse.statusCode);
-                            try {
-                                String responseBody = new String(error.networkResponse.data, "utf-8");
-                                Log.e(TAG, "Sunucudan Dönen Hata Mesajı: " + responseBody);
-                            } catch (Exception e) {
-                                Log.e(TAG, "Hata içeriği okunamadı.");
-                            }
-                        }
-                        callback.onError("Bağlantı hatası: " + error.getMessage());
-                    }
-                }
-        );
-        request.setRetryPolicy(new com.android.volley.DefaultRetryPolicy(
-                45000,
-                0,
-                com.android.volley.DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        ));
-        requestQueue.add(request);
-    }
     public void getHourlyForecast(String cityName, final HourlyCallback callback) {
         // 24 veri noktası için cnt=24
         String url = URL_API.ForecastURL + cityName + "&appid=" + API_KEY + "&units=metric&lang=tr&cnt=24";
@@ -349,6 +226,11 @@ public class WeatherJsonAPI {
             }
 
             double rainProb = hourData.optDouble("pop", 0) * 100;
+            double pressure = main.optDouble("pressure", 1013.0);
+            double cloudiness = 0;
+            if (hourData.has("clouds")) {
+                cloudiness = hourData.getJSONObject("clouds").optDouble("all", 0);
+            }
 
             ForecastItem forecastItem = new ForecastItem(
                     dateHour,
@@ -360,7 +242,9 @@ public class WeatherJsonAPI {
                     rain,
                     windSpeed * 3.6,
                     tempMin,
-                    tempMax
+                    tempMax,
+                    pressure,
+                    cloudiness
             );
 
             hourlyList.add(forecastItem);
@@ -427,6 +311,10 @@ public class WeatherJsonAPI {
                                 dailyData.totalWindSpeed += windSpeed;
                                 dailyData.totalRainVolume += rainVolume;
                                 dailyData.maxRainProbability = Math.max(dailyData.maxRainProbability, pop);
+                                dailyData.totalPressure += main.optDouble("pressure", 1013.0);
+                                if (item.has("clouds")) {
+                                    dailyData.totalCloudiness += item.getJSONObject("clouds").optDouble("all", 0);
+                                }
                                 dailyData.count++;
                             }
 
@@ -448,7 +336,9 @@ public class WeatherJsonAPI {
                                         dailyData.totalRainVolume,
                                         dailyData.getAverageWindSpeed() * 3.6,
                                         dailyData.minTemp,
-                                        dailyData.maxTemp
+                                        dailyData.maxTemp,
+                                        dailyData.getAveragePressure(),
+                                        dailyData.getAverageCloudiness()
                                 );
                                 forecastList.add(forecastItem);
 
@@ -504,6 +394,8 @@ return forecastList;
         double totalWindSpeed = 0;
         double totalRainVolume = 0;
         double maxRainProbability = 0;
+        double totalPressure = 0;
+        double totalCloudiness = 0;
         int count = 0;
 
         DailyData(String displayDate, String dayKey) {
@@ -513,5 +405,7 @@ return forecastList;
 
         int getAverageHumidity() { return count > 0 ? totalHumidity / count : 0; }
         double getAverageWindSpeed() { return count > 0 ? totalWindSpeed / count : 0; }
+        double getAveragePressure() { return count > 0 ? totalPressure / count : 1013.0; }
+        double getAverageCloudiness() { return count > 0 ? totalCloudiness / count : 0; }
     }
 }

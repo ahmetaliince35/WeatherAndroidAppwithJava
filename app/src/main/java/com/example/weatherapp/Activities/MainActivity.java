@@ -36,9 +36,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
 import com.example.weatherapp.Adapters.FavoriCityAdapter;
+import com.example.weatherapp.Helpers.FavoriteCitiesUpdater;
 import com.example.weatherapp.Helpers.WeatherReceiver.OpenMeteoService;
 import com.example.weatherapp.Helpers.WeatherReceiver.VisualCrossingService;
 import com.example.weatherapp.Helpers.WeatherReceiver.WeatherAPIService;
+import com.example.weatherapp.generalFeatures.WeatherWidgetProvider;
 import com.example.weatherapp.generalFeatures.AutoUpdateConfig;
 import com.example.weatherapp.Helpers.CitySearchDB;
 import com.example.weatherapp.Helpers.FavoriCities;
@@ -115,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
 
         locationGetter = new LocationGetter(this);
         preferencesManager = PreferencesManager.getInstance(this);
+        currentProvider = preferencesManager.getSelectedProvider();
 
         AutoUpdateConfig.setupAutoUpdate(getApplicationContext());
         AutoUpdateConfig.setupAutoUpdateFavoriCities(getApplicationContext());
@@ -125,13 +128,13 @@ public class MainActivity extends AppCompatActivity {
                 drawerLayout.openDrawer(Gravity.START);
             }
         });
+
         setupAutoComplete();
         loadSavedWeather();
         buttonClicked();
         notificationSettings();
     }
 
-    // --- 3 NOKTALI MENÜ ENTEGRASYONU ---
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
@@ -144,39 +147,70 @@ public class MainActivity extends AppCompatActivity {
 
         if (id == R.id.provider_owm) {
             currentProvider = "OWM";
+            preferencesManager.saveSelectedProvider(currentProvider);
             Toast.makeText(this, "Veri Kaynağı: OpenWeatherMap", Toast.LENGTH_SHORT).show();
-            if (!currentCity.isEmpty()) fetchWeatherByCurrentProvider(currentCity);
+            WeatherWidgetProvider.updateAllWidgets(MainActivity.this);
+            if (!currentCity.isEmpty()) {
+                isNewSearch = true;
+                fetchWeatherByCurrentProvider(currentCity);
+            }
             return true;
         } else if (id == R.id.provider_open_meteo) {
             currentProvider = "OPEN_METEO";
+            preferencesManager.saveSelectedProvider(currentProvider);
             Toast.makeText(this, "Veri Kaynağı: Open-Meteo", Toast.LENGTH_SHORT).show();
-            if (!currentCity.isEmpty()) fetchWeatherByCurrentProvider(currentCity);
+            WeatherWidgetProvider.updateAllWidgets(MainActivity.this);
+            if (!currentCity.isEmpty()) {
+                isNewSearch = true;
+                fetchWeatherByCurrentProvider(currentCity);
+            }
+            return true;
+        } else if (id == R.id.provider_weather_api) {
+            currentProvider = "WEATHER_API";
+            preferencesManager.saveSelectedProvider(currentProvider);
+            Toast.makeText(this, "Veri Kaynağı: WeatherAPI", Toast.LENGTH_SHORT).show();
+            WeatherWidgetProvider.updateAllWidgets(MainActivity.this);
+            if (!currentCity.isEmpty()) {
+                isNewSearch = true;
+                fetchWeatherByCurrentProvider(currentCity);
+            }
+            return true;
+        } else if (id == R.id.provider_visual_crossing) {
+            currentProvider = "VISUAL_CROSSING";
+            preferencesManager.saveSelectedProvider(currentProvider);
+            preferencesManager.saveVisualCrossingModel("");
+            Toast.makeText(this, "Veri Kaynağı: Visual Crossing", Toast.LENGTH_SHORT).show();
+            WeatherWidgetProvider.updateAllWidgets(MainActivity.this);
+            if (!currentCity.isEmpty()) {
+                isNewSearch = true;
+                fetchWeatherByCurrentProvider(currentCity);
+            }
+            return true;
+        } else if (id == R.id.action_add_widget) {
+            requestPinWidget();
             return true;
         }
-        else if (id == R.id.provider_weather_api) {
-        currentProvider = "WEATHER_API";
-        Toast.makeText(this, "Veri Kaynağı: WeatherAPI", Toast.LENGTH_SHORT).show();
-        if (!currentCity.isEmpty()) fetchWeatherByCurrentProvider(currentCity);
-        return true;
-    }
-     else if (id == R.id.provider_visual_crossing) {
-        currentProvider = "VISUAL_CROSSING";
-        Toast.makeText(this, "Veri Kaynağı: Visual Crossing", Toast.LENGTH_SHORT).show();
-        if (!currentCity.isEmpty()) fetchWeatherByCurrentProvider(currentCity);
-        return true;
-    }
-
 
         return super.onOptionsItemSelected(item);
     }
 
-    // Seçilen menü kaynağına göre yönlendirme metodu
+    private void requestPinWidget() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.appwidget.AppWidgetManager appWidgetManager = getSystemService(android.appwidget.AppWidgetManager.class);
+            android.content.ComponentName myProvider = new android.content.ComponentName(this, WeatherWidgetProvider.class);
+            if (appWidgetManager != null && appWidgetManager.isRequestPinAppWidgetSupported()) {
+                appWidgetManager.requestPinAppWidget(myProvider, null, null);
+                Toast.makeText(this, "Widget ana ekrana ekleme penceresi açıldı.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        Toast.makeText(this, "Ana ekranda boş bir yere basılı tutup 'Araçlar/Widget'lar' menüsünden weatherapp'i seçebilirsiniz.", Toast.LENGTH_LONG).show();
+    }
+
     private void fetchWeatherByCurrentProvider(String cityName) {
         switch (currentProvider) {
             case "WEATHER_API":
                 getWeatherFromWeatherAPI(cityName);
-            case "MGM":
-                getWeatherfromMGM();
                 break;
             case "OPEN_METEO":
                 getWeatherFromOpenMeteoService(cityName);
@@ -240,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
                 currentCity = city.cityName;
                 isNewSearch = true;
                 isSaveLocation = false;
-                getWeatherfromOpenWeatherMap(currentCity);
+                fetchWeatherByCurrentProvider(currentCity);
                 drawerLayout.closeDrawer(Gravity.START);
             }
 
@@ -334,7 +368,6 @@ public class MainActivity extends AppCompatActivity {
     private void loadSavedWeather() {
         if (preferencesManager.getSavedCityName() == null) return;
 
-        // 🔑 KRİTİK EKLENDİ: Hafızadaki kayıtlı sağlayıcıyı değişkenimize çekiyoruz
         currentProvider = preferencesManager.getSelectedProvider();
 
         if (preferencesManager.getIcon() != null) {
@@ -358,10 +391,11 @@ public class MainActivity extends AppCompatActivity {
                 preferencesManager.getLastUpdateTime(),
                 preferencesManager.getCloudiness()
         );
+        WeatherWidgetProvider.updateAllWidgets(this);
+        WeatherWidgetProvider.fetchHourlyForecastForWidget(this, preferencesManager);
     }
 
     private void buttonClicked() {
-        // Ara Butonu artık pop-up açmaz, direkt seçili menü kaynağından getirir
         buttonSearch.setOnClickListener(v -> {
             String city = editTextCity.getText().toString().trim();
             if (!city.isEmpty()) {
@@ -385,6 +419,7 @@ public class MainActivity extends AppCompatActivity {
 
                     intent.putExtra("CITY_NAME", cleanCity);
                     intent.putExtra("PROVIDER", currentProvider); // YENİ
+                    intent.putExtra("VC_MODEL", preferencesManager.getVisualCrossingModel());
                     intent.putExtra("background-res", currentbackround);
                     intent.putExtra("isNewSearch", isNewSearch);
                     intent.putExtra("isSaveLocation", isSaveLocation);
@@ -405,6 +440,7 @@ public class MainActivity extends AppCompatActivity {
 
                     intent.putExtra("CITY_NAME", cleanCity);
                     intent.putExtra("PROVIDER", currentProvider); // YENİ
+                    intent.putExtra("VC_MODEL", preferencesManager.getVisualCrossingModel());
                     intent.putExtra("background-res", currentbackround);
                     intent.putExtra("isNewSearch", isNewSearch);
                     intent.putExtra("isSaveLocation", isSaveLocation);
@@ -427,7 +463,7 @@ public class MainActivity extends AppCompatActivity {
                 textViewTemperature.setText("--°C");
                 textViewDescription.setText("---");
                 textViewHumidity.setText("Nem: --%");
-                textViewWindSpeed.setText("Rüzgar hızı: -- km/s");
+                textViewWindSpeed.setText("Rüzgar hızı: -- km/h");
                 textViewPressure.setText("Basınç: -- hPa");
                 textViewLastUpdate.setText("Son güncelleme: --");
                 textViewCloudiness.setText("Bulut Oranı: --%");
@@ -553,7 +589,7 @@ public class MainActivity extends AppCompatActivity {
             public void onLocationReceived(String cityName) {
                 currentCity = cityName;
                 isNewSearch = true;
-                getWeatherfromOpenWeatherMap(currentCity);
+                fetchWeatherByCurrentProvider(currentCity);
                 Toast.makeText(MainActivity.this, "Konum: " + cityName, Toast.LENGTH_SHORT).show();
             }
 
@@ -565,43 +601,15 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void getWeatherfromMGM() {
-        progressBar.setVisibility(VISIBLE);
-        WeatherJsonAPI repo = new WeatherJsonAPI(this);
-        if (selectedCity != null && selectedCity.contains(",") && selectedCity.split(",")[1].trim().endsWith("Türkiye")) {
-            isMGM = true;
-            String townMGM = selectedCity.split(",")[0].split("/")[0];
-            String cityMGM = selectedCity.split(",")[0].split("/")[1];
-            repo.getWeatherFromMGM(cityMGM, townMGM, true, new WeatherJsonAPI.WeatherCallback() {
-                @Override
-                public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                    progressBar.setVisibility(View.INVISIBLE);
-                    updateUI(isMGM, data.AIAdvice, data.cityName, data.temp, data.description, data.humidity, data.windSpeed,
-                            data.pressure, data.icon, data.windDirection, System.currentTimeMillis(), data.cloudiness);
 
-                    tempData = data;
-                    buttonForecast.setEnabled(false);
-                    buttonHourlyForecast.setEnabled(false);
-                    updateBackgroundByWeather(data.icon, data.description);
-                }
-
-                @Override
-                public void onError(String error) {
-                    progressBar.setVisibility(View.INVISIBLE);
-                    Toast.makeText(MainActivity.this, "MGM'den veri çekilemedi, OWM'ye geçiliyor.", Toast.LENGTH_SHORT).show();
-                    getWeatherfromOpenWeatherMap(selectedCity);
-                }
-            });
-        }
-    }
     private void getWeatherFromVisualCrossing(String cityName) {
         progressBar.setVisibility(VISIBLE);
         VisualCrossingService repo = new VisualCrossingService(this);
 
         String cleanCity = cityName.contains("/") ? cityName.split("/")[0].trim() : cityName;
+        String vcModel = preferencesManager.getVisualCrossingModel();
 
-        // 2. parametre olarak 'true' (isAIactive) eklendi
-        repo.getCurrentWeather(cleanCity, true, new VisualCrossingService.WeatherCallback() {
+        repo.getCurrentWeather(cleanCity, vcModel, true, new VisualCrossingService.WeatherCallback() {
             @Override
             public void onSuccess(WeatherJsonAPI.WeatherData data) {
                 progressBar.setVisibility(View.INVISIBLE);
@@ -609,6 +617,8 @@ public class MainActivity extends AppCompatActivity {
                 updateUI(false, data.AIAdvice, data.cityName, data.temp, data.description,
                         data.humidity, data.windSpeed * 3.6, data.pressure, data.icon,
                         data.windDirection, System.currentTimeMillis(), data.cloudiness);
+
+                fetchAIAdviceAsync(data.cityName, data.temp, data.description, data.icon);
 
                 tempData = data;
                 showSaveLocationDialog(cleanCity);
@@ -640,24 +650,26 @@ public class MainActivity extends AppCompatActivity {
                         public void onSuccess(OpenMeteoService.WeatherData data) {
                             progressBar.setVisibility(View.INVISIBLE);
 
-                            // 1. ARAYÜZÜ GÜNCELLE
                             updateUI(false, data.AIAdvice, data.cityName, data.temp, data.description,
                                     data.humidity, data.windSpeed * 3.6, data.pressure, data.icon,
                                     data.windDirection, System.currentTimeMillis(), data.cloudiness);
 
-                            // 2. ARKA PLANI VE İKONU AÇIKÇA ZORLAYARAK GÜNCELLE
+                            fetchAIAdviceAsync(data.cityName, data.temp, data.description, data.icon);
+
                             updateBackgroundByWeather(data.icon, data.description);
 
-                            // 3. TEMP DATA DOLUMU
                             tempData = new WeatherJsonAPI.WeatherData();
                             tempData.cityName = data.cityName;
                             tempData.temp = data.temp;
                             tempData.description = data.description;
                             tempData.humidity = data.humidity;
-                            tempData.windSpeed = data.windSpeed * 3.6;
+                            tempData.windSpeed = data.windSpeed;
                             tempData.icon = data.icon;
                             tempData.pressure = data.pressure;
                             tempData.AIAdvice = data.AIAdvice;
+                            tempData.windDirection = data.windDirection;
+                            tempData.cloudiness = data.cloudiness;
+                            tempData.feelsLike = data.temp;
 
                             showSaveLocationDialog(cityName);
                             buttonForecast.setEnabled(true);
@@ -697,6 +709,8 @@ public class MainActivity extends AppCompatActivity {
                         data.humidity, data.windSpeed * 3.6, data.pressure, data.icon,
                         data.windDirection, System.currentTimeMillis(), data.cloudiness);
 
+                fetchAIAdviceAsync(data.cityName, data.temp, data.description, data.icon);
+
                 tempData = data;
                 showSaveLocationDialog(cleanCity);
                 buttonForecast.setEnabled(true);
@@ -723,6 +737,8 @@ public class MainActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.INVISIBLE);
                 updateUI(isMGM, data.AIAdvice, data.cityName, data.temp, data.description, data.humidity, data.windSpeed * 3.6,
                         data.pressure, data.icon, data.windDirection, System.currentTimeMillis(), data.cloudiness);
+
+                fetchAIAdviceAsync(data.cityName, data.temp, data.description, data.icon);
 
                 tempData = data;
                 showSaveLocationDialog(il);
@@ -751,9 +767,9 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         preferencesManager.saveLocation(cityName);
                         preferencesManager.updateLastUpdateTime();
+                        preferencesManager.saveSelectedProvider(currentProvider);
                         isSaveLocation = true;
                         if (tempData != null) {
-                            // 🔑 YENİ: Ilk parametre olarak currentProvider eklendi
                             preferencesManager.saveWeatherData(
                                     currentProvider,
                                     tempData.AIAdvice, tempData.cityName, tempData.temp, tempData.description,
@@ -764,6 +780,7 @@ public class MainActivity extends AppCompatActivity {
                                     tempData.humidity, tempData.windSpeed * 3.6,
                                     tempData.pressure, tempData.icon, tempData.windDirection, preferencesManager.getLastUpdateTime(), tempData.cloudiness);
                         }
+                        FavoriteCitiesUpdater.updateFavorites(MainActivity.this, null);
                         Toast.makeText(MainActivity.this,
                                 cityName + " (" + currentProvider + ") varsayılan konum olarak kaydedildi",
                                 LENGTH_LONG).show();
@@ -772,6 +789,7 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButton("Hayır", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        preferencesManager.saveSelectedProvider(currentProvider);
                         Toast.makeText(MainActivity.this,
                                 "Konum kaydedilmedi.",
                                 Toast.LENGTH_SHORT).show();
@@ -782,34 +800,62 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void fetchAIAdviceAsync(String cityName, double temp, String desc, String icon) {
+        if (cityName == null || cityName.trim().isEmpty()) return;
+        textViewAIAdvice.setText(R.string.ai_advice_waiting);
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                com.example.weatherapp.Helpers.GeminiHelperPackages.GeminiPrompter ai =
+                        new com.example.weatherapp.Helpers.GeminiHelperPackages.GeminiPrompter();
+                String advice = ai.getWeatherAdvice(cityName, temp, desc, icon);
+                runOnUiThread(() -> {
+                    if (advice != null && !advice.isEmpty()) {
+                        textViewAIAdvice.setText(advice);
+                        if (tempData != null) {
+                            tempData.AIAdvice = advice;
+                        }
+                        preferencesManager.saveAIAdvice(advice);
+                    }
+                });
+            } catch (Exception e) {
+                Log.e(TAG, "AI Hatası: " + e.getMessage());
+            }
+        });
+    }
+
     private void updateUI(boolean isMgm, String AIAdvice, String cityName,
                           double temperature, String description,
                           double humidity, double windSpeed, int pressure, String icon, float winddirection,
                           long timestamp, double cloudiness) {
         if (isMgm) {
-            textViewCloudiness.setText("Toplam Yağış: " + cloudiness + " mm");
+            textViewCloudiness.setText(getString(R.string.rain_mm_label, cloudiness));
         } else {
-            textViewCloudiness.setText("Bulut Oranı: %" + cloudiness);
+            textViewCloudiness.setText(getString(R.string.cloudiness_label, cloudiness));
         }
         if (AIAdvice != null && !AIAdvice.isEmpty()) {
             textViewAIAdvice.setText(AIAdvice);
         } else {
-            textViewAIAdvice.setText("AI önerisi bekleniyor...");
+            textViewAIAdvice.setText(R.string.ai_advice_waiting);
         }
-        if (pressure == 0) textViewPressure.setText("Veri Yok!");
-        else textViewPressure.setText("Basınç: " + pressure + " hPa");
+        if (pressure == 0) textViewPressure.setText(R.string.no_data);
+        else textViewPressure.setText(getString(R.string.pressure_label, (double) pressure));
 
         textViewCityName.setText(cityName != null ? cityName : " --");
-        textViewTemperature.setText(String.format("%.1f°C", temperature));
-        textViewDescription.setText(description != null ? description.substring(0, 1).toUpperCase() + description.substring(1) : "--");
-        textViewHumidity.setText("Nem: " + humidity + "%");
-        textViewWindSpeed.setText((String.format(Locale.getDefault(), "Rüzgar hızı: %.0f km/s", windSpeed)));
+        textViewTemperature.setText(getString(R.string.temperature_decimal_label, temperature));
+        String safeDesc = "--";
+        if (description != null && !description.trim().isEmpty()) {
+            safeDesc = (description.length() > 1)
+                    ? description.substring(0, 1).toUpperCase(new Locale("tr", "TR")) + description.substring(1).toLowerCase(new Locale("tr", "TR"))
+                    : description.toUpperCase(new Locale("tr", "TR"));
+        }
+        textViewDescription.setText(safeDesc);
+        textViewHumidity.setText(getString(R.string.humidity_label, humidity));
+        textViewWindSpeed.setText(getString(R.string.wind_speed_label, windSpeed));
         windDirect.setRotation(winddirection + 180);
 
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm", new Locale("tr", "TR"));
         String updateTime = sdf.format(new Date(timestamp));
 
-        // --- YENİ EKLENEN KISIM: Provider İsim Biçimlendirme ---
         String providerName;
         switch (currentProvider != null ? currentProvider : "OPEN_METEO") {
             case "OWM":
@@ -831,9 +877,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Son güncelleme metnine veri kaynağını da ekliyoruz
-        textViewLastUpdate.setText("Son güncelleme: " + updateTime + " (" + providerName + ")");
+        textViewLastUpdate.setText(getString(R.string.last_update_label, updateTime, providerName));
 
         if (icon != null) setWeatherIcon(icon, description);
+
+        WeatherWidgetProvider.updateAllWidgets(this);
+        WeatherWidgetProvider.fetchHourlyForecastForWidget(this, preferencesManager, cityName);
     }
 
     private void setWeatherIcon(String icon, String description) {

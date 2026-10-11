@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.text.TextUtils;
 import com.example.weatherapp.Adapters.ForecastAdapter;
 import com.example.weatherapp.Helpers.ForecastItem;
 import com.example.weatherapp.Helpers.WeatherReceiver.WeatherRepository;
@@ -31,13 +32,15 @@ public class Forecastactivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private ForecastAdapter adapter;
     private List<ForecastItem> forecastList;
-    private LinearLayout root;
+    private View root;
     private boolean isNewSearch;
     private boolean isSaveLocation;
     private String cityName;
     private String provider;
+    private String vcModel;
     private int backGroundRes;
     private PreferencesManager preferencesManager;
+    private com.example.weatherapp.Helpers.charts.FeatureTrendManager trendManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,13 +54,16 @@ public class Forecastactivity extends AppCompatActivity {
         adapter = new ForecastAdapter(this, forecastList, 1);
         recyclerViewForecast.setAdapter(adapter);
 
+        View trendLayout = findViewById(R.id.trendSectionLayout);
+        trendManager = new com.example.weatherapp.Helpers.charts.FeatureTrendManager(trendLayout);
+
         String updateTime = LastUpdateTime(isNewSearch);
 
         getForecastData(cityName, isNewSearch);
 
         root.setBackgroundResource(backGroundRes);
-        textViewCityTitle.setText(cityName + " - 5 Günlük Tahmin");
-        textViewLastUpdate.setText("Son Güncelleme: " + updateTime);
+        textViewCityTitle.setText(getString(R.string.forecast_title_label, cityName != null ? cityName : ""));
+        textViewLastUpdate.setText(getString(R.string.last_update_label, updateTime, getProviderDisplayName()));
     }
 
     private void initialVariables() {
@@ -71,13 +77,27 @@ public class Forecastactivity extends AppCompatActivity {
 
     private void getIntents() {
         cityName = getIntent().getStringExtra("CITY_NAME");
+        if (TextUtils.isEmpty(cityName)) {
+            cityName = preferencesManager.getSavedCityName();
+        }
         provider = getIntent().getStringExtra("PROVIDER");
         if (provider == null || provider.isEmpty()) {
-            provider = "OWM";
+            provider = preferencesManager.getSelectedProvider();
+        }
+        vcModel = getIntent().getStringExtra("VC_MODEL");
+        if (vcModel == null) {
+            vcModel = preferencesManager.getVisualCrossingModel();
         }
         backGroundRes = getIntent().getIntExtra("background-res", R.drawable.background);
         isNewSearch = getIntent().getBooleanExtra("isNewSearch", false);
         isSaveLocation = getIntent().getBooleanExtra("isSaveLocation", false);
+    }
+
+    private String getProviderDisplayName() {
+        if ("OWM".equalsIgnoreCase(provider)) return "OpenWeatherMap";
+        if ("WEATHER_API".equalsIgnoreCase(provider)) return "WeatherAPI";
+        if ("VISUAL_CROSSING".equalsIgnoreCase(provider)) return "Visual Crossing";
+        return "Open-Meteo";
     }
 
     private String LastUpdateTime(boolean isNewSearch) {
@@ -92,6 +112,12 @@ public class Forecastactivity extends AppCompatActivity {
     }
 
     private void getForecastData(String city, boolean isNewSearch) {
+        if (city == null || city.isEmpty()) {
+            progressBar.setVisibility(View.GONE);
+            Toast.makeText(Forecastactivity.this, "Şehir bulunamadı", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         progressBar.setVisibility(View.VISIBLE);
         String cleanCity = city.contains("/") ? city.split("/")[0].trim() : city;
 
@@ -103,20 +129,28 @@ public class Forecastactivity extends AppCompatActivity {
                 forecastList.clear();
                 forecastList.addAll(cached);
                 adapter.notifyDataSetChanged();
+                trendManager.setForecastData(forecastList, false);
                 progressBar.setVisibility(View.GONE);
                 return;
             }
         }
 
-        // OPEN-METEO VEYA DİĞER SERVİSLER İÇİN DOĞRUDAN REPOSITORY'DEN ÇEK
+
         WeatherRepository repository = new WeatherRepository(this);
-        repository.getDailyForecast(provider, cleanCity, new WeatherRepository.ForecastDataCallback() {
+        repository.getDailyForecast(provider, vcModel, cleanCity, new WeatherRepository.ForecastDataCallback() {
             @Override
             public void onSuccess(List<ForecastItem> newforecastList) {
                 progressBar.setVisibility(View.GONE);
                 forecastList.clear();
-                forecastList.addAll(newforecastList);
+                if (newforecastList != null) {
+                    for (ForecastItem item : newforecastList) {
+                        if (item != null && item.getDate() != null) {
+                            forecastList.add(item);
+                        }
+                    }
+                }
                 adapter.notifyDataSetChanged();
+                trendManager.setForecastData(forecastList, false);
             }
 
             @Override

@@ -12,18 +12,28 @@ public class ForecastItem {
     private double windSpeed;
      private double tempMin;
      private double tempMax;
+     private double pressure;
+     private double cloudiness;
+
     public ForecastItem(String date, double temperature,
-                        String description, String icon, double humidity, double probability,double preprainy,double windSpeed,double tempMin,double tempMax) {
+                        String description, String icon, double humidity, double probability, double preprainy, double windSpeed, double tempMin, double tempMax) {
+        this(date, temperature, description, icon, humidity, probability, preprainy, windSpeed, tempMin, tempMax, 0, 0);
+    }
+
+    public ForecastItem(String date, double temperature,
+                        String description, String icon, double humidity, double probability, double preprainy, double windSpeed, double tempMin, double tempMax, double pressure, double cloudiness) {
         this.date = date;
         this.temperature = temperature;
         this.description = description;
         this.icon = icon;
         this.humidity = humidity;
-        this.probability=probability;
-        this.preprainy=preprainy;
+        this.probability = probability;
+        this.preprainy = preprainy;
         this.windSpeed = windSpeed;
-        this.tempMin=tempMin;
-        this.tempMax=tempMax;
+        this.tempMin = tempMin;
+        this.tempMax = tempMax;
+        this.pressure = pressure;
+        this.cloudiness = cloudiness;
     }
 
     public String getDate() {
@@ -50,4 +60,6 @@ public class ForecastItem {
     public double getWindSpeed() {return windSpeed;}
     public double getTempMin() {return tempMin;}
     public double getTempMax() {return tempMax;}
+    public double getPressure() { return pressure; }
+    public double getCloudiness() { return cloudiness; }
 }

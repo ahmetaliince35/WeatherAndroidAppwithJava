@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -37,14 +38,14 @@ public class pastDailyData extends AppCompatActivity {
 
     private List<StationEntity> stations = new ArrayList<>();
     private StationEntity selectedStation = null;
+    private com.example.weatherapp.Helpers.charts.FeatureTrendManager trendManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.past_daily_data);
 
-        // 1. Root Layout'u bul ve MainActivity'den gelen arka planı ata
-        LinearLayout rootLayout = findViewById(R.id.rootLayout);
+        View rootLayout = findViewById(R.id.rootLayout);
         int backgroundRes = getIntent().getIntExtra("background-res", R.drawable.background);
         if (rootLayout != null) {
             rootLayout.setBackgroundResource(backgroundRes);
@@ -56,7 +57,9 @@ public class pastDailyData extends AppCompatActivity {
         search = findViewById(R.id.etSearchStation);
         rvWeatherData = findViewById(R.id.rvWeatherData);
 
-        // RecyclerView Kurulumu
+        View trendLayout = findViewById(R.id.trendSectionLayout);
+        trendManager = new com.example.weatherapp.Helpers.charts.FeatureTrendManager(trendLayout);
+
         rvWeatherData.setLayoutManager(new LinearLayoutManager(this));
         weatherAdapter = new pastDailyDataAdapter();
         rvWeatherData.setAdapter(weatherAdapter);
@@ -64,22 +67,38 @@ public class pastDailyData extends AppCompatActivity {
 
         search.setThreshold(2);
 
-        // İSTASYON SEÇİLDİĞİNDE
         search.setOnItemClickListener((parent, view, position, id) -> {
             isSelecting = true;
-
-            selectedStation = stations.get(position);
-            search.setText(selectedStation.name);
-            search.dismissDropDown();
-
-            // Klavyeyi kapat
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                imm.hideSoftInputFromWindow(search.getWindowToken(), 0);
+            String clickedName = null;
+            if (parent != null && parent.getItemAtPosition(position) != null) {
+                clickedName = parent.getItemAtPosition(position).toString();
             }
 
-            // Hava durumu verisini getir
-            getWeatherData(selectedStation);
+            selectedStation = null;
+            if (clickedName != null) {
+                for (StationEntity s : stations) {
+                    if (s != null && clickedName.equals(s.name)) {
+                        selectedStation = s;
+                        break;
+                    }
+                }
+            }
+            if (selectedStation == null && position >= 0 && position < stations.size()) {
+                selectedStation = stations.get(position);
+            }
+
+            if (selectedStation != null) {
+                search.setText(selectedStation.name);
+                search.dismissDropDown();
+
+                // Klavyeyi kapat
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.hideSoftInputFromWindow(search.getWindowToken(), 0);
+                }
+
+                getWeatherData(selectedStation);
+            }
         });
 
         search.setOnFocusChangeListener((v, hasFocus) -> {
@@ -88,7 +107,6 @@ public class pastDailyData extends AppCompatActivity {
             }
         });
 
-        // Kullanıcı yazdıkça DB'den ara
         search.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -159,12 +177,10 @@ public class pastDailyData extends AppCompatActivity {
         LocalDate oneDaysAgo = today.minusDays(1);
 
 
-// Meteostat API'nin istediği formata dönüştürme (YYYY-MM-DD)
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        String endDate = oneDaysAgo.format(formatter);        // Örn: "2026-08-11"
-        String startDate = sevenDaysAgo.format(formatter); // Örn: "2026-08-04"
-        // Örnek olarak tarih aralığı girilmiştir
+        String endDate = oneDaysAgo.format(formatter);
+        String startDate = sevenDaysAgo.format(formatter);
         parser.getDailyWeather(
                 station.id,
                 startDate,
@@ -175,20 +191,27 @@ public class pastDailyData extends AppCompatActivity {
                             retrofit2.Call<MeteoStatParser.DailyWeatherResponse> call,
                             retrofit2.Response<MeteoStatParser.DailyWeatherResponse> response) {
 
-                        // Logcat'e HTTP Kodunu ve Hata Mesajını Yazdırın
                         System.out.println("HTTP KODU: " + response.code());
 
                         if (response.isSuccessful() && response.body() != null && response.body().data != null) {
-                            if (response.body().data.isEmpty()) {
+                            List<MeteoStatParser.DailyWeather> rawList = response.body().data;
+                            List<MeteoStatParser.DailyWeather> validList = new ArrayList<>();
+                            for (MeteoStatParser.DailyWeather item : rawList) {
+                                if (item != null && item.date != null && !item.date.trim().isEmpty()) {
+                                    validList.add(item);
+                                }
+                            }
+                            if (validList.isEmpty()) {
                                 Toast.makeText(pastDailyData.this, "Bu istasyon için belirtilen tarihte veri yok.", Toast.LENGTH_SHORT).show();
                             } else {
-                                List<MeteoStatParser.DailyWeather> weatherList = response.body().data;
-                                java.util.Collections.reverse(weatherList);
-                                weatherAdapter.updateData(weatherList, station.name, station.country);
+                                java.util.Collections.reverse(validList);
+                                String sName = (station != null && station.name != null) ? station.name : "";
+                                String sCountry = (station != null && station.country != null) ? station.country : "";
+                                weatherAdapter.updateData(validList, sName, sCountry);
+                                trendManager.setPastStationData(validList);
                             }
                         } else {
                             try {
-                                // Hata detayını görebilmek için errorBody'yi yazdırın
                                 String error = response.errorBody() != null ? response.errorBody().string() : "Bilinmeyen hata";
                                 System.out.println("API HATASI: " + error);
                             } catch (Exception e) {

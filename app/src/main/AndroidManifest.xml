@@ -57,6 +57,19 @@
 
         </activity>
 
+        <!-- Hava Durumu Ana Ekran Widget'ı -->
+        <receiver
+            android:name=".generalFeatures.WeatherWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.weatherapp.ACTION_REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/weather_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>

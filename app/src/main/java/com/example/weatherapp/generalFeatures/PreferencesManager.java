@@ -4,6 +4,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import com.example.weatherapp.Helpers.ForecastItem;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class PreferencesManager {
 
     private static final String TAG = "PreferencesManager";
@@ -12,7 +20,8 @@ public class PreferencesManager {
     private static final String KEY_LAST_UPDATE = "last_update";
     private static final String KEY_HOURLY_FORECAST_JSON = "hourly_forecast_json";
     private static final String KEY_DAILY_FORECAST_JSON = "daily_forecast_json";
-    private static final String KEY_SELECTED_PROVIDER = "selected_provider"; // YENİ: Provider anahtarı
+    public static final String KEY_SELECTED_PROVIDER = "selected_provider";
+    public static final String KEY_SELECTED_VC_MODEL = "selected_vc_model";
 
     private static PreferencesManager instance;
     private final SharedPreferences preferences;
@@ -29,7 +38,6 @@ public class PreferencesManager {
         return instance;
     }
 
-    // --- YENİ EKLENEN PROVIDER İŞLEMLERİ ---
     public void saveSelectedProvider(String provider) {
         try {
             SharedPreferences.Editor editor = preferences.edit();
@@ -43,7 +51,6 @@ public class PreferencesManager {
 
     public String getSelectedProvider() {
         try {
-            // Manuel değişiklik yapılmadığı sürece varsayılan olarak OPEN_METEO döner
             String provider = preferences.getString(KEY_SELECTED_PROVIDER, "OPEN_METEO");
             Log.d(TAG, "getSelectedProvider: " + provider);
             return provider;
@@ -52,8 +59,28 @@ public class PreferencesManager {
             return "OPEN_METEO";
         }
     }
+    public void saveVisualCrossingModel(String model) {
+        try {
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putString(KEY_SELECTED_VC_MODEL, model != null ? model : "");
+            editor.commit();
+            Log.d(TAG, "Visual Crossing model saved: " + model);
+        } catch (Exception e) {
+            Log.e(TAG, "saveVisualCrossingModel error: " + e.getMessage());
+        }
+    }
 
-    // --- MEVCUT METOTLAR ---
+    public String getVisualCrossingModel() {
+        try {
+            String model = preferences.getString(KEY_SELECTED_VC_MODEL, "");
+            Log.d(TAG, "getVisualCrossingModel: " + model);
+            return model;
+        } catch (Exception e) {
+            Log.e(TAG, "getVisualCrossingModel error: " + e.getMessage());
+            return "";
+        }
+    }
+
     public void saveLocation(String cityName) {
         try {
             SharedPreferences.Editor editor = preferences.edit();
@@ -69,6 +96,9 @@ public class PreferencesManager {
     public String getSavedCityName() {
         try {
             String cityName = preferences.getString(KEY_CITY_NAME, null);
+            if (cityName == null || cityName.trim().isEmpty()) {
+                cityName = preferences.getString("city", null);
+            }
             Log.d(TAG, "getSavedCityName: " + cityName);
             return cityName;
         } catch (Exception e) {
@@ -155,6 +185,17 @@ public class PreferencesManager {
         }
     }
 
+    public double getFeelsLike() {
+        try {
+            double feels = preferences.getLong("feels", 0);
+            Log.d(TAG, "getFeelsLike: " + feels);
+            return feels;
+        } catch (Exception e) {
+            Log.e(TAG, "getFeelsLike error: " + e.getMessage());
+            return 0;
+        }
+    }
+
     public int getPressure() {
         try {
             int press = preferences.getInt("pressure", 0);
@@ -185,6 +226,14 @@ public class PreferencesManager {
         }
     }
 
+    public void saveAIAdvice(String advice) {
+        try {
+            preferences.edit().putString("AIAdvice", advice != null ? advice : "").apply();
+        } catch (Exception e) {
+            Log.e(TAG, "saveAIAdvice error: " + e.getMessage());
+        }
+    }
+
     public double getCloudiness() {
         try {
             return preferences.getLong("Cloud", 0);
@@ -194,14 +243,15 @@ public class PreferencesManager {
         }
     }
 
-    // PreferencesManager.java içindeki saveWeatherData metodunu şu şekilde değiştirin:
 
     public void saveWeatherData(String provider, String advice, String city, double temp, String desc,
                                 int humidity, double wind, double feels, int pressure,
                                 String icon, float windDegree, double cloudiness) {
         try {
             SharedPreferences.Editor editor = preferences.edit();
-            editor.putString(KEY_SELECTED_PROVIDER, provider); // 👈 Seçili sağlayıcıyı da kaydediyoruz
+            editor.putString(KEY_SELECTED_PROVIDER, provider);
+            editor.putString(KEY_CITY_NAME, city);
+            editor.putLong(KEY_LAST_UPDATE, System.currentTimeMillis());
             editor.putString("AIAdvice", advice);
             editor.putString("city", city);
             editor.putLong("temp", (long) temp);
@@ -260,5 +310,47 @@ public class PreferencesManager {
             Log.e(TAG, "getDailyForecastJson error: " + e.getMessage());
             return null;
         }
+    }
+
+    public void saveWidgetHourlyItems(List<ForecastItem> list) {
+        if (list == null || list.isEmpty()) return;
+        try {
+            JSONArray arr = new JSONArray();
+            int count = Math.min(list.size(), 72);
+            for (int i = 0; i < count; i++) {
+                ForecastItem item = list.get(i);
+                if (item == null) continue;
+                JSONObject obj = new JSONObject();
+                obj.put("date", item.getDate() != null ? item.getDate() : "");
+                obj.put("temp", item.getTemperature());
+                obj.put("icon", item.getIcon() != null ? item.getIcon() : "");
+                obj.put("desc", item.getDescription() != null ? item.getDescription() : "");
+                arr.put(obj);
+            }
+            saveHourlyForecastJson(arr.toString());
+            Log.d(TAG, "saveWidgetHourlyItems: " + arr.length() + " saatlik tahmin kaydedildi.");
+        } catch (Exception e) {
+            Log.e(TAG, "saveWidgetHourlyItems error: " + e.getMessage());
+        }
+    }
+
+    public List<ForecastItem> getWidgetHourlyItems() {
+        List<ForecastItem> result = new ArrayList<>();
+        String json = getHourlyForecastJson();
+        if (json == null || json.trim().isEmpty()) return result;
+        try {
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                String date = obj.optString("date", "");
+                double temp = obj.optDouble("temp", 0.0);
+                String icon = obj.optString("icon", "");
+                String desc = obj.optString("desc", "");
+                result.add(new ForecastItem(date, temp, desc, icon, 0, 0, 0, 0, 0, 0));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "getWidgetHourlyItems error: " + e.getMessage());
+        }
+        return result;
     }
 }

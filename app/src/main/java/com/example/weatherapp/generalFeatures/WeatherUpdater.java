@@ -25,6 +25,7 @@ import com.example.weatherapp.R;
 import com.example.weatherapp.data.URL_API;
 
 import java.util.List;
+import java.util.Locale;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -58,7 +59,6 @@ public class WeatherUpdater extends Worker {
             return Result.failure();
         }
 
-        // Arka plan güncellemesini de mevcut kayıtlı provider üzerinden yürütüyoruz
         String currentProvider = prefsManager.getSelectedProvider();
 
         try {
@@ -82,7 +82,6 @@ public class WeatherUpdater extends Worker {
             GeminiPrompter aiProvider = new GeminiPrompter();
             String aiAdvice = aiProvider.getWeatherAdvice(data.name, data.main.temp, data.weather.get(0).description, data.weather.get(0).icon);
 
-            // DÜZELTME: Ilk parametre olarak currentProvider eklendi
             prefsManager.saveWeatherData(
                     currentProvider,
                     aiAdvice,
@@ -109,9 +108,9 @@ public class WeatherUpdater extends Worker {
             }
 
             prefsManager.updateLastUpdateTime();
-            Log.d(TAG, "Preferences güncellendi");
+            WeatherWidgetProvider.updateAllWidgets(getApplicationContext());
+            Log.d(TAG, "Preferences ve Widget güncellendi");
 
-            // Bildirim gönder
             sendWeatherNotification(
                     data.name,
                     String.format("%.1f°C", data.main.temp),
@@ -126,8 +125,6 @@ public class WeatherUpdater extends Worker {
             return Result.retry();
         }
     }
-
-    // Retrofit arayüzü
     public interface WeatherService {
         @GET("weather")
         Call<WeatherResponse> getCurrentWeather(
@@ -199,8 +196,13 @@ public class WeatherUpdater extends Worker {
         }
 
         RemoteViews notificationLayout = new RemoteViews(getApplicationContext().getPackageName(), R.layout.notification);
-        notificationLayout.setTextViewText(R.id.tvTitle, cityName + " - " + temperature);
-        notificationLayout.setTextViewText(R.id.tvDescription, description.substring(0, 1).toUpperCase() + description.substring(1));
+        String safeDesc = "Hava Durumu";
+        if (description != null && !description.trim().isEmpty()) {
+            safeDesc = (description.length() > 1)
+                    ? description.substring(0, 1).toUpperCase(new Locale("tr", "TR")) + description.substring(1).toLowerCase(new Locale("tr", "TR"))
+                    : description.toUpperCase(new Locale("tr", "TR"));
+        }
+        notificationLayout.setTextViewText(R.id.tvDescription, safeDesc);
         notificationLayout.setImageViewResource(R.id.ivWeatherIcon, getWeatherIcon(iconCode, description));
 
         Notification notification = new NotificationCompat.Builder(context, CHANNEL_ID)

@@ -4,7 +4,12 @@ import android.content.Context;
 
 import com.example.weatherapp.Helpers.ForecastItem;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class WeatherRepository {
 
@@ -27,65 +32,93 @@ public class WeatherRepository {
         this.visualCrossingService= new VisualCrossingService(context);
     }
 
-    // --- GÜNLÜK TAHMİN ÇEKİCİ ---
-    public void getDailyForecast(String provider, String cityName, ForecastDataCallback callback) {
+
+    public void getDailyForecast(String provider, String vcModel, String cityName, ForecastDataCallback callback) {
         if (provider == null || provider.isEmpty()) {
             provider = "OPEN_METEO";
         }
 
+        ForecastDataCallback boundedCallback = new ForecastDataCallback() {
+            @Override
+            public void onSuccess(List<ForecastItem> forecastList) {
+                if (forecastList != null && forecastList.size() > 5) {
+                    forecastList = new java.util.ArrayList<>(forecastList.subList(0, 5));
+                }
+                callback.onSuccess(forecastList);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        };
+
         switch (provider.toUpperCase()) {
             case "OPEN_METEO":
-                fetchOpenMeteoDaily(cityName, callback);
+                fetchOpenMeteoDaily(cityName, boundedCallback);
                 break;
 
             case "WEATHER_API":
-                fetchWeatherAPIDaily(cityName, callback);
+                fetchWeatherAPIDaily(cityName, boundedCallback);
                 break;
 
             case "OWM":
-                fetchOwmDaily(cityName, callback);
+                fetchOwmDaily(cityName, boundedCallback);
                 break;
-            case "VISUAL_CROSSING": // YENİ
-                fetchVisualCrossingDaily(cityName, callback);
+            case "VISUAL_CROSSING":
+                fetchVisualCrossingDaily(cityName, vcModel, boundedCallback);
                 break;
 
             default:
-                // Bilinmeyen veya boş bir kaynak gelirse varsayılan olarak Open-Meteo çalışır
-                fetchOpenMeteoDaily(cityName, callback);
+                fetchOpenMeteoDaily(cityName, boundedCallback);
                 break;
         }
     }
 
-    // --- SAATLİK TAHMİN ÇEKİCİ ---
-    public void getHourlyForecast(String provider, String cityName, ForecastDataCallback callback) {
+
+    public void getHourlyForecast(String provider, String vcModel, String cityName, ForecastDataCallback callback) {
         if (provider == null || provider.isEmpty()) {
             provider = "OPEN_METEO";
         }
 
+        ForecastDataCallback boundedCallback = new ForecastDataCallback() {
+            @Override
+            public void onSuccess(List<ForecastItem> forecastList) {
+                if (forecastList != null) {
+                    forecastList = filterFutureHours(forecastList, 72);
+                }
+                callback.onSuccess(forecastList);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        };
+
         switch (provider.toUpperCase()) {
             case "OPEN_METEO":
-                fetchOpenMeteoHourly(cityName, callback);
+                fetchOpenMeteoHourly(cityName, boundedCallback);
                 break;
 
             case "WEATHER_API":
-                fetchWeatherAPIHourly(cityName, callback);
+                fetchWeatherAPIHourly(cityName, boundedCallback);
                 break;
-            case "VISUAL_CROSSING": // YENİ
-                fetchVisualCrossingHourly(cityName, callback);
+            case "VISUAL_CROSSING":
+                fetchVisualCrossingHourly(cityName, vcModel, boundedCallback);
                 break;
 
             case "OWM":
-                fetchOwmHourly(cityName, callback);
+                fetchOwmHourly(cityName, boundedCallback);
                 break;
 
             default:
-                fetchOpenMeteoHourly(cityName, callback);
+                fetchOpenMeteoHourly(cityName, boundedCallback);
                 break;
         }
     }
 
-    // --- PRIVATE YARDIMCI METOTLAR (Sadece burada yönetilir) ---
-    // YENİ HELPER METOTLAR:
+
     private void fetchWeatherAPIDaily(String cityName, ForecastDataCallback callback) {
         weatherAPIService.getDailyForecast(cityName, new WeatherAPIService.WeatherAPICallback() {
             @Override
@@ -199,8 +232,8 @@ public class WeatherRepository {
             }
         });
     }
-    private void fetchVisualCrossingDaily(String cityName, ForecastDataCallback callback) {
-        visualCrossingService.getDailyForecast(cityName, new VisualCrossingService.ForecastCallback() {
+    private void fetchVisualCrossingDaily(String cityName, String model, ForecastDataCallback callback) {
+        visualCrossingService.getDailyForecast(cityName, model, new VisualCrossingService.ForecastCallback() {
             @Override
             public void onSuccess(List<ForecastItem> forecastList) {
                 callback.onSuccess(forecastList);
@@ -213,8 +246,8 @@ public class WeatherRepository {
         });
     }
 
-    private void fetchVisualCrossingHourly(String cityName, ForecastDataCallback callback) {
-        visualCrossingService.getHourlyForecast(cityName, new VisualCrossingService.ForecastCallback() {
+    private void fetchVisualCrossingHourly(String cityName, String model, ForecastDataCallback callback) {
+        visualCrossingService.getHourlyForecast(cityName, model, new VisualCrossingService.ForecastCallback() {
             @Override
             public void onSuccess(List<ForecastItem> forecastList) {
                 callback.onSuccess(forecastList);
@@ -225,5 +258,71 @@ public class WeatherRepository {
                 callback.onError(error);
             }
         });
+    }
+
+    private List<ForecastItem> filterFutureHours(List<ForecastItem> list, int maxCount) {
+        if (list == null || list.isEmpty()) return list;
+        long nowThreshold = System.currentTimeMillis() - (50 * 60 * 1000L);
+        List<ForecastItem> filtered = new ArrayList<>();
+        boolean foundStart = false;
+
+        for (ForecastItem item : list) {
+            if (item == null) continue;
+            long itemTime = parseTimestamp(item.getDate());
+            if (!foundStart) {
+                if (itemTime == 0 || itemTime >= nowThreshold) {
+                    foundStart = true;
+                    filtered.add(item);
+                }
+            } else {
+                filtered.add(item);
+            }
+            if (filtered.size() >= maxCount) break;
+        }
+
+        return filtered.isEmpty() ? list : filtered;
+    }
+
+    private long parseTimestamp(String rawDate) {
+        if (rawDate == null || rawDate.trim().isEmpty()) return 0;
+        String cleaned = rawDate.trim().replace("T", " ");
+
+        if (cleaned.length() >= 16 && cleaned.charAt(4) == '-' && cleaned.charAt(7) == '-') {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
+                Date d = sdf.parse(cleaned.substring(0, 16));
+                if (d != null) return d.getTime();
+            } catch (Exception ignored) {}
+        }
+
+        if (cleaned.contains(".")) {
+            try {
+                String datePart = cleaned.contains("-") ? cleaned.split("-")[0].trim() : cleaned;
+                String[] parts = datePart.split(" ");
+                if (parts.length >= 3) {
+                    SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH.mm", new Locale("tr", "TR"));
+                    Date d = sdf.parse(parts[0] + " " + parts[1] + " " + parts[2]);
+                    if (d != null) {
+                        Calendar cal = Calendar.getInstance();
+                        Calendar parsedCal = Calendar.getInstance();
+                        parsedCal.setTime(d);
+                        cal.set(Calendar.MONTH, parsedCal.get(Calendar.MONTH));
+                        cal.set(Calendar.DAY_OF_MONTH, parsedCal.get(Calendar.DAY_OF_MONTH));
+                        cal.set(Calendar.HOUR_OF_DAY, parsedCal.get(Calendar.HOUR_OF_DAY));
+                        cal.set(Calendar.MINUTE, parsedCal.get(Calendar.MINUTE));
+                        cal.set(Calendar.SECOND, 0);
+                        cal.set(Calendar.MILLISECOND, 0);
+                        return cal.getTimeInMillis();
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        try {
+            long val = Long.parseLong(cleaned);
+            return val < 10000000000L ? val * 1000L : val;
+        } catch (Exception ignored) {}
+
+        return 0;
     }
 }

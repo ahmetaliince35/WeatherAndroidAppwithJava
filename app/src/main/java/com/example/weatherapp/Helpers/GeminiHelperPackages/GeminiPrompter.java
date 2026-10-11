@@ -4,6 +4,8 @@ import android.util.Log;
 
 import com.example.weatherapp.BuildConfig;
 
+import okhttp3.OkHttpClient;
+import java.util.concurrent.TimeUnit;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -15,8 +17,15 @@ public class GeminiPrompter {
     private final String API_KEY = BuildConfig.GEMINI_API_KEY;
 
     public GeminiPrompter() {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(7, TimeUnit.SECONDS)
+                .readTimeout(7, TimeUnit.SECONDS)
+                .writeTimeout(7, TimeUnit.SECONDS)
+                .build();
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
+                .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         service = retrofit.create(GeminiService.class);
@@ -27,7 +36,7 @@ public class GeminiPrompter {
         // AI'ya ne sormak istediğini burada kurguluyoruz (Prompt)
         String prompt = String.format(
                 "%s şehrinde  şu an %s vakti ve  hava  %.1f derece ve %s. " +
-                        "Bana Türkçe olarak bu bilgilere göre 20 kelimeyi geçmeyecek şekilde havayı yorumlayıp o ana göre bir öneri ver.",
+                        "Bana bu şehrin kültürüne uygun olacak şekilde havayı yorumlayıp o ana göre 50 kelimeyi geçmeyecek bir öneri/tavsiye/kıyafet önerisi ver.",
                 city,dayOrnight, temp, desc
         );
 

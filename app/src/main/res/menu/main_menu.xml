@@ -19,7 +19,13 @@
                 android:title="WeatherAPI" />
             <item
                 android:id="@+id/provider_visual_crossing"
-                android:title="Visual-Crossing" />
+                android:title="Visual Crossing" />
         </menu>
     </item>
+
+    <item
+        android:id="@+id/action_add_widget"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="Widget'ı Ana Ekrana Ekle"
+        app:showAsAction="never" />
 </menu>

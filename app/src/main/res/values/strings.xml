@@ -5,9 +5,24 @@
     <string name="select_city">Şehir Seçin</string>
     <string name="temperature_default">--°C</string>
     <string name="weather_info">Hava durumu bilgisi</string>
-    <string name="humidity">Nem: --%</string>
-    <string name="wind_speed">Rüzgar: -- m/s</string>
+    <string name="temperature_label">%1$.0f°C</string>
+    <string name="temperature_decimal_label">%1$.1f°C</string>
+    <string name="no_data">Veri Yok!</string>
+    <string name="ai_advice_waiting">AI önerisi bekleniyor...</string>
+    <string name="humidity_label">Nem: %1$.0f%%</string>
+    <string name="wind_speed_label">Rüzgar: %1$.0f km/h</string>
+    <string name="pressure_label">Basınç: %1$.0f hPa</string>
+    <string name="cloudiness_label">Bulutluluk: %1$.0f%%</string>
+    <string name="rain_mm_label">Yağış: %1$.2f mm</string>
+    <string name="rain_cm_label">Yağış: %1$.2f cm</string>
+    <string name="probability_label">İhtimal: %1$.0f%%</string>
+    <string name="temp_range_label">Min: %1$.0f°C / Max: %2$.0f°C</string>
+    <string name="last_update_label">Son güncelleme: %1$s (%2$s)</string>
+    <string name="forecast_title_label">%1$s - 5 Günlük Tahmin</string>
+    <string name="hourly_forecast_title_label">%1$s - 72 Saatlik Tahmin</string>
     <string name="error_empty_city">Lütfen şehir adı girin</string>
     <string name="error_city_not_found">Şehir bulunamadı</string>
     <string name="error_data_processing">Veri işlenirken hata oluştu</string>
+    <string name="widget_weather_icon_description">Hava Durumu İkonu</string>
+    <string name="widget_refresh_description">Yenile</string>
 </resources>

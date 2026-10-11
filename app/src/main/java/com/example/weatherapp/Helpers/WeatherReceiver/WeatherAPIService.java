@@ -17,8 +17,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class WeatherAPIService {
 
@@ -38,7 +41,7 @@ public class WeatherAPIService {
         void onError(String error);
     }
 
-    // Anlık Hava Durumu Çekme Metodu
+
     public void getCurrentWeather(String cityName, boolean isAIactive, final WeatherCallback callback) {
         String url = "https://api.weatherapi.com/v1/current.json?key=" + API_KEY +
                 "&q=" + cityName + "&aqi=no&lang=tr";
@@ -55,7 +58,7 @@ public class WeatherAPIService {
                         data.temp = current.getDouble("temp_c");
                         data.humidity = current.getInt("humidity");
                         data.pressure = (int) current.getDouble("pressure_mb");
-                        data.windSpeed = current.getDouble("wind_kph") / 3.6; // km/h -> m/s (Main'de 3.6 ile çarpılıyor)
+                        data.windSpeed = current.getDouble("wind_kph") / 3.6;
                         data.windDirection = (float) current.getDouble("wind_degree");
                         data.cloudiness = current.getDouble("cloud");
 
@@ -63,20 +66,8 @@ public class WeatherAPIService {
                         data.description = condition.getString("text");
                         data.icon = condition.getString("icon");
 
-                        if (isAIactive) {
-                            new Thread(() -> {
-                                try {
-                                    GeminiPrompter aiProvider = new GeminiPrompter();
-                                    data.AIAdvice = aiProvider.getWeatherAdvice(data.cityName, data.temp, data.description, data.icon);
-                                } catch (Exception e) {
-                                    Log.e("WeatherAPIService", "AI Hatası: " + e);
-                                } finally {
-                                    new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(data));
-                                }
-                            }).start();
-                        } else {
-                            callback.onSuccess(data);
-                        }
+                        data.AIAdvice = "";
+                        callback.onSuccess(data);
                     } catch (JSONException e) {
                         callback.onError("WeatherAPI anlık veri işlenemedi.");
                     }
@@ -86,10 +77,9 @@ public class WeatherAPIService {
 
         requestQueue.add(request);
     }
-    // 1. Günlük Tahmin (7 Günlük)
     public void getDailyForecast(String cityName, final WeatherAPICallback callback) {
         String url = "https://api.weatherapi.com/v1/forecast.json?key=" + API_KEY +
-                "&q=" + cityName + "&days=7&aqi=no&alerts=no&lang=tr";
+                "&q=" + cityName + "&days=5&aqi=no&alerts=no&lang=tr";
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET, url, null,
@@ -98,7 +88,7 @@ public class WeatherAPIService {
                         List<ForecastItem> list = new ArrayList<>();
                         JSONArray forecastDay = response.getJSONObject("forecast").getJSONArray("forecastday");
 
-                        for (int i = 0; i < forecastDay.length(); i++) {
+                        for (int i = 0; i < Math.min(forecastDay.length(), 5); i++) {
                             JSONObject dayObj = forecastDay.getJSONObject(i);
                             String date = dayObj.getString("date");
                             JSONObject day = dayObj.getJSONObject("day");
@@ -109,13 +99,16 @@ public class WeatherAPIService {
                             double maxWind = day.getDouble("maxwind_kph");
                             double totalPrecip = day.getDouble("totalprecip_mm");
                             double rainProb = day.optDouble("daily_chance_of_rain", 0);
+                            double humidity = day.optDouble("avghumidity", 0);
+                            double pressure = day.optDouble("pressure_mb", 1013.0);
+                            double cloudiness = day.optDouble("cloud", 0);
 
                             JSONObject condition = day.getJSONObject("condition");
                             String desc = condition.getString("text");
                             String icon = condition.getString("icon");
 
                             ForecastItem item = new ForecastItem(
-                                    date, avgTemp, desc, icon, 0, rainProb, totalPrecip, maxWind, minTemp, maxTemp
+                                    date, avgTemp, desc, icon, humidity, rainProb, totalPrecip, maxWind, minTemp, maxTemp, pressure, cloudiness
                             );
                             list.add(item);
                         }
@@ -130,7 +123,7 @@ public class WeatherAPIService {
         requestQueue.add(request);
     }
 
-    // 2. Saatlik Tahmin (24-48 Saatlik)
+
     public void getHourlyForecast(String cityName, final WeatherAPICallback callback) {
         String url = "https://api.weatherapi.com/v1/forecast.json?key=" + API_KEY +
                 "&q=" + cityName + "&days=3&aqi=no&alerts=no&lang=tr";
@@ -142,6 +135,9 @@ public class WeatherAPIService {
                         List<ForecastItem> list = new ArrayList<>();
                         JSONArray forecastDay = response.getJSONObject("forecast").getJSONArray("forecastday");
 
+                        long nowThreshold = System.currentTimeMillis() - (50 * 60 * 1000L);
+                        SimpleDateFormat sdfParser = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
+
                         for (int i = 0; i < forecastDay.length(); i++) {
                             JSONObject dayObj = forecastDay.getJSONObject(i);
                             JSONArray hourArray = dayObj.getJSONArray("hour");
@@ -149,21 +145,34 @@ public class WeatherAPIService {
                             for (int j = 0; j < hourArray.length(); j++) {
                                 JSONObject hour = hourArray.getJSONObject(j);
                                 String time = hour.getString("time");
+
+                                // Geçmiş saatleri atla, o anki saatten itibaren başla
+                                try {
+                                    Date d = sdfParser.parse(time);
+                                    if (d != null && d.getTime() < nowThreshold) {
+                                        continue;
+                                    }
+                                } catch (Exception ignored) {}
+
                                 double temp = hour.getDouble("temp_c");
                                 double humidity = hour.getDouble("humidity");
                                 double wind = hour.getDouble("wind_kph");
                                 double precip = hour.getDouble("precip_mm");
                                 double rainProb = hour.optDouble("chance_of_rain", 0);
+                                double pressure = hour.optDouble("pressure_mb", 1013.0);
+                                double cloudiness = hour.optDouble("cloud", 0);
 
                                 JSONObject condition = hour.getJSONObject("condition");
                                 String desc = condition.getString("text");
                                 String icon = condition.getString("icon");
 
                                 ForecastItem item = new ForecastItem(
-                                        time, temp, desc, icon, humidity, rainProb, precip, wind, temp, temp
+                                        time, temp, desc, icon, humidity, rainProb, precip, wind, temp, temp, pressure, cloudiness
                                 );
                                 list.add(item);
+                                if (list.size() >= 72) break; // O anki saatten itibaren tam 72 saat
                             }
+                            if (list.size() >= 72) break;
                         }
                         callback.onSuccess(list);
                     } catch (JSONException e) {

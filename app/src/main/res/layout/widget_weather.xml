@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/widget_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/partlycloudy" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#30000000" />
+
+    <LinearLayout
+        android:id="@+id/widget_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <RelativeLayout
+            android:id="@+id/widget_top_section"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1.05"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                android:id="@+id/widget_icon_frame"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_widget_icon_container"
+                android:padding="5dp">
+
+                <ImageView
+                    android:id="@+id/widget_weather_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/icon_partlycloudy"
+                    android:contentDescription="@string/widget_weather_icon_description" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:id="@+id/widget_right_layout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/widget_temperature"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="20°"
+                        android:textColor="#FFFFFF"
+                        android:textSize="29sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#CC000000"
+                        android:shadowRadius="3"
+                        android:shadowDx="1.2"
+                        android:shadowDy="1.2"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:id="@+id/widget_feels_like"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:text="His: 21°"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#CC000000"
+                        android:shadowRadius="2.5"
+                        android:shadowDx="1"
+                        android:shadowDy="1"
+                        android:includeFontPadding="false" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/widget_button_refresh"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_widget_refresh_button"
+                    android:contentDescription="@string/widget_refresh_description"
+                    android:padding="7dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_refresh" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/widget_info_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_toEndOf="@+id/widget_icon_frame"
+                android:layout_toStartOf="@+id/widget_right_layout"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center_vertical"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_city_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Şehir"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="3"
+                    android:shadowDx="1.2"
+                    android:shadowDy="1.2"
+                    android:includeFontPadding="false" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1.5dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/widget_description"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Parçalı Bulutlu"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#CC000000"
+                        android:shadowRadius="2.5"
+                        android:shadowDx="1"
+                        android:shadowDy="1"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:id="@+id/widget_last_update"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4.5dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="• 14:30"
+                        android:textColor="#F1F5F9"
+                        android:textSize="10.5sp"
+                        android:shadowColor="#CC000000"
+                        android:shadowRadius="2.5"
+                        android:shadowDx="1"
+                        android:shadowDy="1"
+                        android:includeFontPadding="false" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/widget_badges_layout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/widget_humidity_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_widget_metric_chip"
+                        android:paddingStart="5.5dp"
+                        android:paddingEnd="5.5dp"
+                        android:paddingTop="1.5dp"
+                        android:paddingBottom="1.5dp"
+                        android:text="💧 %65"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#CC000000"
+                        android:shadowRadius="2"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:id="@+id/widget_wind_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:background="@drawable/bg_widget_metric_chip"
+                        android:paddingStart="5.5dp"
+                        android:paddingEnd="5.5dp"
+                        android:paddingTop="1.5dp"
+                        android:paddingBottom="1.5dp"
+                        android:text="💨 12 km/s"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#CC000000"
+                        android:shadowRadius="2"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:id="@+id/widget_pressure_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:background="@drawable/bg_widget_metric_chip"
+                        android:paddingStart="5.5dp"
+                        android:paddingEnd="5.5dp"
+                        android:paddingTop="1.5dp"
+                        android:paddingBottom="1.5dp"
+                        android:text="⏲️ 1013 hPa"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#CC000000"
+                        android:shadowRadius="2"
+                        android:includeFontPadding="false" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/widget_provider_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <FrameLayout
+            android:id="@+id/widget_hourly_divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="#20FFFFFF" />
+
+        <!-- ALT BÖLÜM: 6'şar Saat Arayla 5 Adet Şık Kare Kart -->
+        <LinearLayout
+            android:id="@+id/widget_hourly_section"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1.0"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <!-- Kart 1 -->
+            <LinearLayout
+                android:id="@+id/widget_hourly_slot_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_widget_hourly_card"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingStart="3dp"
+                android:paddingEnd="3dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/widget_hourly_time_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="15:00"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+
+                <ImageView
+                    android:id="@+id/widget_hourly_icon_1"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="2.5dp"
+                    android:layout_marginBottom="2.5dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/icon_sunny" />
+
+                <TextView
+                    android:id="@+id/widget_hourly_temp_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="20°"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- Kart 2 -->
+            <LinearLayout
+                android:id="@+id/widget_hourly_slot_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_widget_hourly_card"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingStart="3dp"
+                android:paddingEnd="3dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/widget_hourly_time_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="21:00"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+
+                <ImageView
+                    android:id="@+id/widget_hourly_icon_2"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="2.5dp"
+                    android:layout_marginBottom="2.5dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/icon_partlycloudy" />
+
+                <TextView
+                    android:id="@+id/widget_hourly_temp_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="18°"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- Kart 3 -->
+            <LinearLayout
+                android:id="@+id/widget_hourly_slot_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_widget_hourly_card"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingStart="3dp"
+                android:paddingEnd="3dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/widget_hourly_time_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="03:00"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+
+                <ImageView
+                    android:id="@+id/widget_hourly_icon_3"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="2.5dp"
+                    android:layout_marginBottom="2.5dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/icon_moon" />
+
+                <TextView
+                    android:id="@+id/widget_hourly_temp_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="15°"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- Kart 4 -->
+            <LinearLayout
+                android:id="@+id/widget_hourly_slot_4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_widget_hourly_card"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingStart="3dp"
+                android:paddingEnd="3dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/widget_hourly_time_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="09:00"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+
+                <ImageView
+                    android:id="@+id/widget_hourly_icon_4"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="2.5dp"
+                    android:layout_marginBottom="2.5dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/icon_sunny" />
+
+                <TextView
+                    android:id="@+id/widget_hourly_temp_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="19°"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+
+            <!-- Kart 5 -->
+            <LinearLayout
+                android:id="@+id/widget_hourly_slot_5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="2dp"
+                android:background="@drawable/bg_widget_hourly_card"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingStart="3dp"
+                android:paddingEnd="3dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/widget_hourly_time_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="15:00"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+
+                <ImageView
+                    android:id="@+id/widget_hourly_icon_5"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="2.5dp"
+                    android:layout_marginBottom="2.5dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/icon_sunny" />
+
+                <TextView
+                    android:id="@+id/widget_hourly_temp_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="20°"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#CC000000"
+                    android:shadowRadius="2.5"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

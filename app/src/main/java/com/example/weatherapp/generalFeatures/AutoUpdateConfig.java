@@ -34,7 +34,6 @@ public class AutoUpdateConfig {
                 TimeUnit.HOURS
         ).build();
 
-        // WorkManager ile görevi planla
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 "favorite_weather_update",
                 ExistingPeriodicWorkPolicy.UPDATE,
