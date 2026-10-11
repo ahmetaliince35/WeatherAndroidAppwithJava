@@ -198,79 +198,19 @@ public class WeatherWidgetProvider extends AppWidgetProvider {
 
         String cleanCity = cityName.contains("/") ? cityName.split("/")[0].trim() : cityName.trim();
 
-        if ("OWM".equals(provider)) {
-            WeatherJsonAPI api = new WeatherJsonAPI(context);
-            api.getWeatherfromOpenWEatherMAp(cleanCity, false, new WeatherJsonAPI.WeatherCallback() {
-                @Override
-                public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                    saveAndRefresh(context, prefs, provider, data.cityName, data.temp, data.description,
-                            data.humidity, data.windSpeed, data.feelsLike, data.pressure, data.icon, data.windDirection, data.cloudiness);
-                }
+        WeatherRepository repo = new WeatherRepository(context);
+        repo.getCurrentWeather(provider, cleanCity, vcModel, new com.example.weatherapp.Helpers.WeatherReceiver.WeatherCallback<com.example.weatherapp.Helpers.WeatherReceiver.WeatherData>() {
+            @Override
+            public void onSuccess(com.example.weatherapp.Helpers.WeatherReceiver.WeatherData data) {
+                saveAndRefresh(context, prefs, provider, data.cityName, data.temp, data.description,
+                        data.humidity, data.windSpeed, data.feelsLike, data.pressure, data.icon, data.windDirection, data.cloudiness);
+            }
 
-                @Override
-                public void onError(String error) {
-                    Toast.makeText(context, "Yenileme başarısız: " + error, Toast.LENGTH_SHORT).show();
-                }
-            });
-        } else if ("WEATHER_API".equals(provider)) {
-            WeatherAPIService api = new WeatherAPIService(context);
-            api.getCurrentWeather(cleanCity, false, new WeatherAPIService.WeatherCallback() {
-                @Override
-                public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                    saveAndRefresh(context, prefs, provider, data.cityName, data.temp, data.description,
-                            data.humidity, data.windSpeed, data.feelsLike, data.pressure, data.icon, data.windDirection, data.cloudiness);
-                }
-
-                @Override
-                public void onError(String error) {
-                    Toast.makeText(context, "Yenileme başarısız: " + error, Toast.LENGTH_SHORT).show();
-                }
-            });
-        } else if ("VISUAL_CROSSING".equals(provider)) {
-            VisualCrossingService api = new VisualCrossingService(context);
-            api.getCurrentWeather(cleanCity, vcModel, false, new VisualCrossingService.WeatherCallback() {
-                @Override
-                public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                    saveAndRefresh(context, prefs, provider, data.cityName, data.temp, data.description,
-                            data.humidity, data.windSpeed, data.feelsLike, data.pressure, data.icon, data.windDirection, data.cloudiness);
-                }
-
-                @Override
-                public void onError(String error) {
-                    Toast.makeText(context, "Yenileme başarısız: " + error, Toast.LENGTH_SHORT).show();
-                }
-            });
-        } else {
-            // OPEN_METEO
-            OpenMeteoService api = new OpenMeteoService(context);
-            api.searchGlobalLocation(cleanCity, new OpenMeteoService.GeoSearchCallback() {
-                @Override
-                public void onSuccess(List<OpenMeteoService.GeoSearchResult> results) {
-                    if (results != null && !results.isEmpty()) {
-                        OpenMeteoService.GeoSearchResult loc = results.get(0);
-                        api.getWeatherFromOpenMeteo(loc.latitude, loc.longitude, cleanCity, false, new OpenMeteoService.WeatherCallback() {
-                            @Override
-                            public void onSuccess(OpenMeteoService.WeatherData data) {
-                                saveAndRefresh(context, prefs, "OPEN_METEO", data.cityName, data.temp, data.description,
-                                        data.humidity, data.windSpeed, data.temp, data.pressure, data.icon, data.windDirection, data.cloudiness);
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                Toast.makeText(context, "Yenileme başarısız: " + error, Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    } else {
-                        Toast.makeText(context, "Konum bulunamadı.", Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onError(String error) {
-                    Toast.makeText(context, "Konum arama hatası: " + error, Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
+            @Override
+            public void onError(String error) {
+                Toast.makeText(context, "Yenileme başarısız: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void saveAndRefresh(Context context, PreferencesManager prefs, String provider, String city, double temp,

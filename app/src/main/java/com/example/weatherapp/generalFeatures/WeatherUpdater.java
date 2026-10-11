@@ -19,27 +19,22 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.example.weatherapp.Activities.MainActivity;
+import com.example.weatherapp.Helpers.ForecastItem;
 import com.example.weatherapp.Helpers.GeminiHelperPackages.GeminiPrompter;
 import com.example.weatherapp.Helpers.UIUpdate;
+import com.example.weatherapp.Helpers.WeatherReceiver.WeatherCallback;
+import com.example.weatherapp.Helpers.WeatherReceiver.WeatherData;
+import com.example.weatherapp.Helpers.WeatherReceiver.WeatherRepository;
 import com.example.weatherapp.R;
-import com.example.weatherapp.data.URL_API;
 
 import java.util.List;
 import java.util.Locale;
-
-import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-import retrofit2.http.GET;
-import retrofit2.http.Query;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class WeatherUpdater extends Worker {
 
     private static final String TAG = "WeatherUpdateWorker";
-    private static final String API_KEY = URL_API.API_KEY;
-    private static final String BASE_URL = "https://api.openweathermap.org/data/2.5/";
     private static final String CHANNEL_ID = "weather_updates";
     private static final int NOTIFICATION_ID = 1001;
 
@@ -50,132 +45,107 @@ public class WeatherUpdater extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        Log.d(TAG, "Worker başlatıldı");
+        Log.d(TAG, "WeatherUpdater çalışıyor...");
 
-        PreferencesManager prefsManager = PreferencesManager.getInstance(getApplicationContext());
+        Context context = getApplicationContext();
+        PreferencesManager prefsManager = PreferencesManager.getInstance(context);
         String cityName = prefsManager.getSavedCityName();
-        if (cityName == null || cityName.isEmpty()) {
-            Log.e(TAG, "Kayıtlı şehir yok, worker başarısız");
+        if (cityName == null || cityName.trim().isEmpty()) {
+            Log.e(TAG, "Kayıtlı şehir bulunamadı, worker sonlandırıldı.");
             return Result.failure();
         }
 
         String currentProvider = prefsManager.getSelectedProvider();
+        String vcModel = prefsManager.getVisualCrossingModel();
 
         try {
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl(BASE_URL)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
+            WeatherRepository repository = new WeatherRepository(context);
 
-            WeatherService service = retrofit.create(WeatherService.class);
-
-            Call<WeatherResponse> call = service.getCurrentWeather(cityName, API_KEY, "metric", "tr");
-            Response<WeatherResponse> response = call.execute();
-
-            if (!response.isSuccessful() || response.body() == null) {
-                Log.e(TAG, "API hatası: " + response.code());
+            // Seçili sağlayıcıya göre anlık hava durumu çekiliyor
+            WeatherData data = repository.getCurrentWeatherSync(currentProvider, cityName, vcModel, 20);
+            if (data == null) {
+                Log.e(TAG, "Hava durumu verisi alınamadı (null).");
                 return Result.retry();
             }
 
-            WeatherResponse data = response.body();
+            // Sağlayıcıdan bağımsız optimize Gemini promptu ile tavsiye alınıyor
+            GeminiPrompter aiProvider = new GeminiPrompter(context);
+            String aiAdvice = aiProvider.getWeatherAdvice(data.cityName, data.temp, data.description, data.icon);
 
-            GeminiPrompter aiProvider = new GeminiPrompter();
-            String aiAdvice = aiProvider.getWeatherAdvice(data.name, data.main.temp, data.weather.get(0).description, data.weather.get(0).icon);
-
+            // Tercihler güncelleniyor
             prefsManager.saveWeatherData(
                     currentProvider,
                     aiAdvice,
-                    data.name,
-                    data.main.temp,
-                    data.weather.get(0).description,
-                    data.main.humidity,
-                    data.wind.speed * 3.6,
-                    data.main.feels_like,
-                    data.main.pressure,
-                    data.weather.get(0).icon,
-                    data.wind.deg,
-                    data.clouds.all
+                    data.cityName,
+                    data.temp,
+                    data.description,
+                    data.humidity,
+                    data.windSpeed,
+                    data.feelsLike,
+                    data.pressure,
+                    data.icon,
+                    data.windDirection,
+                    data.cloudiness
             );
-
-            Response<ResponseBody> hourlyResponse = service.getForecast(cityName, API_KEY, "metric", "tr", 24).execute();
-            if (hourlyResponse.isSuccessful() && hourlyResponse.body() != null) {
-                prefsManager.saveHourlyForecastJson(hourlyResponse.body().string());
-            }
-
-            Response<ResponseBody> dailyResponse = service.getForecast(cityName, API_KEY, "metric", "tr", 40).execute();
-            if (dailyResponse.isSuccessful() && dailyResponse.body() != null) {
-                prefsManager.saveDailyForecastJson(dailyResponse.body().string());
-            }
-
             prefsManager.updateLastUpdateTime();
-            WeatherWidgetProvider.updateAllWidgets(getApplicationContext());
-            Log.d(TAG, "Preferences ve Widget güncellendi");
 
+            // Saatlik ve günlük tahminleri de sağlayıcıdan güncelle
+            updateForecastsSilently(repository, currentProvider, cityName, vcModel);
+
+            // Widget'ları güncelle
+            WeatherWidgetProvider.updateAllWidgets(context);
+            Log.d(TAG, "Hava durumu ve widget'lar güncellendi.");
+
+            // Bildirim gönder
             sendWeatherNotification(
-                    data.name,
-                    String.format("%.1f°C", data.main.temp),
-                    data.weather.get(0).description,
-                    data.weather.get(0).icon
+                    data.cityName,
+                    String.format(Locale.getDefault(), "%.1f°C", data.temp),
+                    data.description,
+                    data.icon
             );
 
             return Result.success();
 
         } catch (Exception e) {
-            Log.e(TAG, "Hava durumu güncelleme hatası: " + e.getMessage());
+            Log.e(TAG, "Hava durumu otomatik güncelleme hatası: " + e.getMessage());
             return Result.retry();
         }
     }
-    public interface WeatherService {
-        @GET("weather")
-        Call<WeatherResponse> getCurrentWeather(
-                @Query("q") String city,
-                @Query("appid") String apiKey,
-                @Query("units") String units,
-                @Query("lang") String lang
-        );
 
-        @GET("forecast")
-        Call<ResponseBody> getForecast(
-                @Query("q") String city,
-                @Query("appid") String apiKey,
-                @Query("units") String units,
-                @Query("lang") String lang,
-                @Query("cnt") int count
-        );
-    }
+    private void updateForecastsSilently(WeatherRepository repository, String provider, String cityName, String model) {
+        final CountDownLatch latch = new CountDownLatch(2);
 
-    public static class WeatherResponse {
-        public Main main;
-        public List<Weather> weather;
-        public Wind wind;
-        public String name;
-        public Cloud clouds;
+        repository.getHourlyForecast(provider, cityName, model, new WeatherCallback<List<ForecastItem>>() {
+            @Override
+            public void onSuccess(List<ForecastItem> data) {
+                latch.countDown();
+            }
 
-        public static class Cloud {
-            public int all;
-        }
+            @Override
+            public void onError(String error) {
+                latch.countDown();
+            }
+        });
 
-        public static class Main {
-            public double temp;
-            public int humidity;
-            public double feels_like;
-            public int pressure;
-        }
+        repository.getDailyForecast(provider, cityName, model, new WeatherCallback<List<ForecastItem>>() {
+            @Override
+            public void onSuccess(List<ForecastItem> data) {
+                latch.countDown();
+            }
 
-        public static class Weather {
-            public String description;
-            public String icon;
-        }
+            @Override
+            public void onError(String error) {
+                latch.countDown();
+            }
+        });
 
-        public static class Wind {
-            public double speed;
-            public float deg;
-        }
+        try {
+            latch.await(10, TimeUnit.SECONDS);
+        } catch (InterruptedException ignored) {}
     }
 
     private void sendWeatherNotification(String cityName, String temperature, String description, String iconCode) {
         Context context = getApplicationContext();
-
         createNotificationChannel(context);
 
         Intent intent = new Intent(context, MainActivity.class);
@@ -188,14 +158,14 @@ public class WeatherUpdater extends Worker {
                 PendingIntent.FLAG_IMMUTABLE
         );
 
-        int iconResource = getWeatherIcon(iconCode, description);
+        int iconResource = UIUpdate.setWeatherIcon(iconCode, description);
         if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
-            Log.e("Hata", "Bildirim izni verilmemiş!");
+            Log.e(TAG, "Bildirim izni verilmemiş.");
             return;
         }
 
-        RemoteViews notificationLayout = new RemoteViews(getApplicationContext().getPackageName(), R.layout.notification);
+        RemoteViews notificationLayout = new RemoteViews(context.getPackageName(), R.layout.notification);
         String safeDesc = "Hava Durumu";
         if (description != null && !description.trim().isEmpty()) {
             safeDesc = (description.length() > 1)
@@ -203,7 +173,7 @@ public class WeatherUpdater extends Worker {
                     : description.toUpperCase(new Locale("tr", "TR"));
         }
         notificationLayout.setTextViewText(R.id.tvDescription, safeDesc);
-        notificationLayout.setImageViewResource(R.id.ivWeatherIcon, getWeatherIcon(iconCode, description));
+        notificationLayout.setImageViewResource(R.id.ivWeatherIcon, iconResource);
 
         Notification notification = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(iconResource)
@@ -219,7 +189,7 @@ public class WeatherUpdater extends Worker {
     private void createNotificationChannel(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = "Hava Durumu Güncellemeleri";
-            String description = "12 saatte bir otomatik hava durumu güncellemeleri";
+            String description = "Otomatik hava durumu güncellemeleri";
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
 
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
@@ -230,12 +200,7 @@ public class WeatherUpdater extends Worker {
 
             if (notificationManager != null) {
                 notificationManager.createNotificationChannel(channel);
-                Log.d(TAG, "Bildirim kanalı oluşturuldu");
             }
         }
-    }
-
-    private int getWeatherIcon(String iconCode, String description) {
-        return UIUpdate.setWeatherIcon(iconCode, description);
     }
 }

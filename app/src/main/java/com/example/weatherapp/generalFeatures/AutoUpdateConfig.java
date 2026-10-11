@@ -41,16 +41,4 @@ public class AutoUpdateConfig {
         );
 
     }
-    //Worker a ait görevleri denemek için anlık olarak güncelleme yapacak şekilde oluşturuldu.
-    /*public static void setupAutoUpdate(Context context) {
-        // Worker için OneTimeWorkRequest oluştur
-        OneTimeWorkRequest weatherWorkRequest = new OneTimeWorkRequest.Builder(WeatherUpdater.class)
-                .build();
-
-        // Worker'ı kuyruğa ekle
-        WorkManager.getInstance(context)
-                .enqueue(weatherWorkRequest);
-
-        Log.d("WeatherWorkerLauncher", "WeatherWorker kuyruğa eklendi");
-    }*/
 }

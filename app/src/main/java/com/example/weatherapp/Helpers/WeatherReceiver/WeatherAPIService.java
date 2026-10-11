@@ -1,17 +1,16 @@
 package com.example.weatherapp.Helpers.WeatherReceiver;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
+import android.net.Uri;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
 import com.example.weatherapp.BuildConfig;
 import com.example.weatherapp.Helpers.ForecastItem;
-import com.example.weatherapp.Helpers.GeminiHelperPackages.GeminiPrompter;
+import com.example.weatherapp.network.ApiClient;
+import com.example.weatherapp.network.NetworkErrorHandler;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -23,63 +22,80 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class WeatherAPIService {
+public class WeatherAPIService implements WeatherProvider {
 
-    private static final String API_KEY = BuildConfig.weatherAPIKey ; // WeatherAPI Key'inizi buraya yazın
+    private static final String API_KEY = BuildConfig.weatherAPIKey;
     private final RequestQueue requestQueue;
+
+    public WeatherAPIService(Context context) {
+        this.requestQueue = ApiClient.getInstance(context).getRequestQueue();
+    }
+
+    @Override
+    public String getProviderKey() {
+        return "WEATHER_API";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "WeatherAPI";
+    }
 
     public interface WeatherAPICallback {
         void onSuccess(List<ForecastItem> forecastList);
         void onError(String error);
     }
 
-    public WeatherAPIService(Context context) {
-        this.requestQueue = Volley.newRequestQueue(context.getApplicationContext());
-    }
-    public interface WeatherCallback {
+    public interface WeatherCallbackLegacy {
         void onSuccess(WeatherJsonAPI.WeatherData data);
         void onError(String error);
     }
 
-
-    public void getCurrentWeather(String cityName, boolean isAIactive, final WeatherCallback callback) {
+    @Override
+    public void getCurrentWeather(String cityName, String model, WeatherCallback<WeatherData> callback) {
+        String cleanCity = cleanCityName(cityName);
         String url = "https://api.weatherapi.com/v1/current.json?key=" + API_KEY +
-                "&q=" + cityName + "&aqi=no&lang=tr";
+                "&q=" + Uri.encode(cleanCity) + "&aqi=no&lang=tr";
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET, url, null,
                 response -> {
                     try {
-                        WeatherJsonAPI.WeatherData data = new WeatherJsonAPI.WeatherData();
+                        WeatherData data = new WeatherData();
                         JSONObject location = response.getJSONObject("location");
                         JSONObject current = response.getJSONObject("current");
 
                         data.cityName = location.getString("name");
                         data.temp = current.getDouble("temp_c");
+                        data.feelsLike = current.optDouble("feelslike_c", data.temp);
                         data.humidity = current.getInt("humidity");
                         data.pressure = (int) current.getDouble("pressure_mb");
-                        data.windSpeed = current.getDouble("wind_kph") / 3.6;
+                        data.windSpeed = current.getDouble("wind_kph"); // km/h
                         data.windDirection = (float) current.getDouble("wind_degree");
                         data.cloudiness = current.getDouble("cloud");
 
                         JSONObject condition = current.getJSONObject("condition");
                         data.description = condition.getString("text");
                         data.icon = condition.getString("icon");
+                        data.aiAdvice = "";
 
-                        data.AIAdvice = "";
                         callback.onSuccess(data);
                     } catch (JSONException e) {
                         callback.onError("WeatherAPI anlık veri işlenemedi.");
                     }
                 },
-                error -> callback.onError("WeatherAPI bağlantı hatası.")
+                error -> callback.onError(NetworkErrorHandler.formatVolleyError(error))
         );
 
+        request.setRetryPolicy(new DefaultRetryPolicy(15000, 1, 1.0f));
         requestQueue.add(request);
     }
-    public void getDailyForecast(String cityName, final WeatherAPICallback callback) {
+
+    @Override
+    public void getDailyForecast(String cityName, String model, WeatherCallback<List<ForecastItem>> callback) {
+        String cleanCity = cleanCityName(cityName);
         String url = "https://api.weatherapi.com/v1/forecast.json?key=" + API_KEY +
-                "&q=" + cityName + "&days=5&aqi=no&alerts=no&lang=tr";
+                "&q=" + Uri.encode(cleanCity) + "&days=5&aqi=no&alerts=no&lang=tr";
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET, url, null,
@@ -108,7 +124,8 @@ public class WeatherAPIService {
                             String icon = condition.getString("icon");
 
                             ForecastItem item = new ForecastItem(
-                                    date, avgTemp, desc, icon, humidity, rainProb, totalPrecip, maxWind, minTemp, maxTemp, pressure, cloudiness
+                                    date, avgTemp, desc, icon, humidity, rainProb,
+                                    totalPrecip, maxWind, minTemp, maxTemp, pressure, cloudiness
                             );
                             list.add(item);
                         }
@@ -117,16 +134,18 @@ public class WeatherAPIService {
                         callback.onError("WeatherAPI günlük verisi işlenemedi.");
                     }
                 },
-                error -> callback.onError("WeatherAPI bağlantı hatası.")
+                error -> callback.onError(NetworkErrorHandler.formatVolleyError(error))
         );
 
+        request.setRetryPolicy(new DefaultRetryPolicy(15000, 1, 1.0f));
         requestQueue.add(request);
     }
 
-
-    public void getHourlyForecast(String cityName, final WeatherAPICallback callback) {
+    @Override
+    public void getHourlyForecast(String cityName, String model, WeatherCallback<List<ForecastItem>> callback) {
+        String cleanCity = cleanCityName(cityName);
         String url = "https://api.weatherapi.com/v1/forecast.json?key=" + API_KEY +
-                "&q=" + cityName + "&days=3&aqi=no&alerts=no&lang=tr";
+                "&q=" + Uri.encode(cleanCity) + "&days=3&aqi=no&alerts=no&lang=tr";
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET, url, null,
@@ -146,7 +165,6 @@ public class WeatherAPIService {
                                 JSONObject hour = hourArray.getJSONObject(j);
                                 String time = hour.getString("time");
 
-                                // Geçmiş saatleri atla, o anki saatten itibaren başla
                                 try {
                                     Date d = sdfParser.parse(time);
                                     if (d != null && d.getTime() < nowThreshold) {
@@ -167,10 +185,11 @@ public class WeatherAPIService {
                                 String icon = condition.getString("icon");
 
                                 ForecastItem item = new ForecastItem(
-                                        time, temp, desc, icon, humidity, rainProb, precip, wind, temp, temp, pressure, cloudiness
+                                        time, temp, desc, icon, humidity, rainProb,
+                                        precip, wind, temp, temp, pressure, cloudiness
                                 );
                                 list.add(item);
-                                if (list.size() >= 72) break; // O anki saatten itibaren tam 72 saat
+                                if (list.size() >= 72) break;
                             }
                             if (list.size() >= 72) break;
                         }
@@ -179,9 +198,73 @@ public class WeatherAPIService {
                         callback.onError("WeatherAPI saatlik verisi işlenemedi.");
                     }
                 },
-                error -> callback.onError("WeatherAPI bağlantı hatası.")
+                error -> callback.onError(NetworkErrorHandler.formatVolleyError(error))
         );
 
+        request.setRetryPolicy(new DefaultRetryPolicy(15000, 1, 1.0f));
         requestQueue.add(request);
+    }
+
+    // Legacy method
+    public void getCurrentWeather(String cityName, boolean isAIactive, final WeatherCallbackLegacy callback) {
+        getCurrentWeather(cityName, "", new WeatherCallback<WeatherData>() {
+            @Override
+            public void onSuccess(WeatherData data) {
+                WeatherJsonAPI.WeatherData legacy = new WeatherJsonAPI.WeatherData();
+                legacy.cityName = data.cityName;
+                legacy.temp = data.temp;
+                legacy.feelsLike = data.feelsLike;
+                legacy.humidity = data.humidity;
+                legacy.pressure = data.pressure;
+                legacy.windSpeed = data.windSpeed / 3.6;
+                legacy.windDirection = data.windDirection;
+                legacy.cloudiness = data.cloudiness;
+                legacy.description = data.description;
+                legacy.icon = data.icon;
+                legacy.AIAdvice = data.aiAdvice;
+                callback.onSuccess(legacy);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void getDailyForecast(String cityName, final WeatherAPICallback callback) {
+        getDailyForecast(cityName, "", new WeatherCallback<List<ForecastItem>>() {
+            @Override
+            public void onSuccess(List<ForecastItem> data) {
+                callback.onSuccess(data);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void getHourlyForecast(String cityName, final WeatherAPICallback callback) {
+        getHourlyForecast(cityName, "", new WeatherCallback<List<ForecastItem>>() {
+            @Override
+            public void onSuccess(List<ForecastItem> data) {
+                callback.onSuccess(data);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    private String cleanCityName(String cityName) {
+        if (cityName == null) return "";
+        String clean = cityName.trim();
+        if (clean.contains("/")) clean = clean.split("/")[0].trim();
+        if (clean.contains(",")) clean = clean.split(",")[0].trim();
+        return clean;
     }
 }

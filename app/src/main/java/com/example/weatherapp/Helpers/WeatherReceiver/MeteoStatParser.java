@@ -25,9 +25,15 @@ public class MeteoStatParser {
     private final MeteostatApi api;
 
     public MeteoStatParser() {
+        okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
+                .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 

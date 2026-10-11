@@ -2,21 +2,18 @@ package com.example.weatherapp.Helpers.WeatherReceiver;
 
 import android.content.Context;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
 import com.example.weatherapp.BuildConfig;
 import com.example.weatherapp.Helpers.ForecastItem;
-import com.example.weatherapp.Helpers.GeminiHelperPackages.GeminiPrompter;
+import com.example.weatherapp.network.ApiClient;
+import com.example.weatherapp.network.NetworkErrorHandler;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -25,33 +22,43 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class VisualCrossingService {
+public class VisualCrossingService implements WeatherProvider {
 
     private static final String TAG = "VisualCrossingService";
-    private static final String API_KEY = BuildConfig.visualCrossingKey; // Key'inizi buraya girin
+    private static final String API_KEY = BuildConfig.visualCrossingKey;
     private final RequestQueue requestQueue;
 
-    public interface WeatherCallback {
+    public interface WeatherCallbackLegacy {
         void onSuccess(WeatherJsonAPI.WeatherData data);
         void onError(String error);
     }
 
-    public interface ForecastCallback {
+    public interface ForecastCallbackLegacy {
         void onSuccess(List<ForecastItem> forecastList);
         void onError(String error);
     }
 
     public VisualCrossingService(Context context) {
-        this.requestQueue = Volley.newRequestQueue(context.getApplicationContext());
+        this.requestQueue = ApiClient.getInstance(context).getRequestQueue();
+    }
+
+    @Override
+    public String getProviderKey() {
+        return "VISUAL_CROSSING";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Visual Crossing";
     }
 
     private String buildUrl(String cityName, String model) {
-        String encodedCity = Uri.encode(cityName.trim());
+        String cleanCity = cleanCityName(cityName);
+        String encodedCity = Uri.encode(cleanCity);
         String url = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/"
                 + encodedCity + "?unitGroup=metric&key=" + API_KEY + "&contentType=json";
         if (model != null && !model.trim().isEmpty() && !model.equalsIgnoreCase("auto") && !model.equalsIgnoreCase("blended")) {
             String dataset = model.trim().toLowerCase();
-
             if (dataset.equals("ukmo")) {
                 dataset = "ukmo_global";
             }
@@ -60,16 +67,16 @@ public class VisualCrossingService {
         return url;
     }
 
-
-    public void getCurrentWeather(String cityName, String model, boolean isAIactive, final WeatherCallback callback) {
+    @Override
+    public void getCurrentWeather(String cityName, String model, WeatherCallback<WeatherData> callback) {
         String url = buildUrl(cityName, model);
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET, url, null,
                 response -> {
                     try {
-                        WeatherJsonAPI.WeatherData data = new WeatherJsonAPI.WeatherData();
-                        data.cityName = response.optString("address", cityName);
+                        WeatherData data = new WeatherData();
+                        data.cityName = response.optString("address", cleanCityName(cityName));
 
                         JSONObject current = response.optJSONObject("currentConditions");
                         if (current == null) {
@@ -87,19 +94,17 @@ public class VisualCrossingService {
 
                         if (current != null) {
                             data.temp = current.optDouble("temp", 0.0);
+                            data.feelsLike = current.optDouble("feelslike", data.temp);
                             data.humidity = current.optInt("humidity", 0);
                             data.pressure = (int) current.optDouble("pressure", 1013.0);
-
-                            double windKph = current.optDouble("windspeed", 0.0);
-                            data.windSpeed = windKph / 3.6; // km/h -> m/s
-
+                            data.windSpeed = current.optDouble("windspeed", 0.0); // km/h
                             data.windDirection = (float) current.optDouble("winddir", 0.0);
                             data.cloudiness = current.optDouble("cloudcover", 0.0);
                             data.description = current.optString("conditions", "Parçalı Bulutlu");
                             data.icon = current.optString("icon", "02d");
                         }
 
-                        data.AIAdvice = "";
+                        data.aiAdvice = "";
                         callback.onSuccess(data);
 
                     } catch (Exception e) {
@@ -107,17 +112,14 @@ public class VisualCrossingService {
                         callback.onError("Visual Crossing verisi işlenemedi.");
                     }
                 },
-                error -> {
-                    Log.e(TAG, "Volley Hatası: " + error.toString());
-                    callback.onError("Visual Crossing bağlantı hatası. API Key kontrol edin.");
-                }
+                error -> callback.onError(NetworkErrorHandler.formatVolleyError(error))
         );
         request.setRetryPolicy(new DefaultRetryPolicy(15000, 1, 1.0f));
         requestQueue.add(request);
     }
 
-
-    public void getDailyForecast(String cityName, String model, final ForecastCallback callback) {
+    @Override
+    public void getDailyForecast(String cityName, String model, WeatherCallback<List<ForecastItem>> callback) {
         String url = buildUrl(cityName, model);
 
         JsonObjectRequest request = new JsonObjectRequest(
@@ -157,30 +159,15 @@ public class VisualCrossingService {
                         callback.onError("Visual Crossing günlük verisi işlenemedi.");
                     }
                 },
-                error -> callback.onError("Visual Crossing bağlantı hatası.")
+                error -> callback.onError(NetworkErrorHandler.formatVolleyError(error))
         );
         request.setRetryPolicy(new DefaultRetryPolicy(15000, 1, 1.0f));
         requestQueue.add(request);
     }
 
-
-    private String buildHourlyUrl(String cityName, String model) {
-        String encodedCity = Uri.encode(cityName.trim());
-        String url = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/"
-                + encodedCity + "/next72hours?unitGroup=metric&key=" + API_KEY + "&contentType=json&include=hours";
-        if (model != null && !model.trim().isEmpty() && !model.equalsIgnoreCase("auto") && !model.equalsIgnoreCase("blended")) {
-            String dataset = model.trim().toLowerCase();
-
-            if (dataset.equals("ukmo")) {
-                dataset = "ukmo_global";
-            }
-            url += "&forecastDataset=" + dataset;
-        }
-        return url;
-    }
-
-    public void getHourlyForecast(String cityName, String model, final ForecastCallback callback) {
-        String url = buildHourlyUrl(cityName, model);
+    @Override
+    public void getHourlyForecast(String cityName, String model, WeatherCallback<List<ForecastItem>> callback) {
+        String url = buildUrl(cityName, model);
 
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET, url, null,
@@ -194,7 +181,8 @@ public class VisualCrossingService {
                         }
 
                         long nowThreshold = System.currentTimeMillis() - (50 * 60 * 1000L);
-                        SimpleDateFormat sdfParser = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
+                        SimpleDateFormat sdfParser = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
+                        SimpleDateFormat sdfFallback = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
 
                         for (int i = 0; i < days.length(); i++) {
                             JSONObject dayObj = days.optJSONObject(i);
@@ -206,12 +194,17 @@ public class VisualCrossingService {
                             for (int j = 0; j < hours.length(); j++) {
                                 JSONObject hourObj = hours.optJSONObject(j);
                                 if (hourObj == null) continue;
-                                String rawTime = hourObj.optString("datetime", "00:00:00");
-                                String timeStr = dateStr + " " + (rawTime.length() >= 5 ? rawTime.substring(0, 5) : rawTime);
 
-                                // Geçmiş saatleri atla, o anki saatten itibaren başla
+                                String timeStr = hourObj.optString("datetime", "");
+                                String fullDateTime = dateStr + " " + timeStr;
+
                                 try {
-                                    Date d = sdfParser.parse(timeStr);
+                                    Date d = null;
+                                    try {
+                                        d = sdfParser.parse(fullDateTime);
+                                    } catch (Exception ex) {
+                                        d = sdfFallback.parse(fullDateTime);
+                                    }
                                     if (d != null && d.getTime() < nowThreshold) {
                                         continue;
                                     }
@@ -228,10 +221,11 @@ public class VisualCrossingService {
                                 String icon = hourObj.optString("icon", "02d");
 
                                 ForecastItem item = new ForecastItem(
-                                        timeStr, temp, desc, icon, humidity, rainProb, precip, wind, temp, temp, pressure, cloudCover
+                                        fullDateTime, temp, desc, icon, humidity, rainProb,
+                                        precip, wind, temp, temp, pressure, cloudCover
                                 );
                                 list.add(item);
-                                if (list.size() >= 72) break; // O anki saatten itibaren tam 72 saat
+                                if (list.size() >= 72) break;
                             }
                             if (list.size() >= 72) break;
                         }
@@ -240,9 +234,72 @@ public class VisualCrossingService {
                         callback.onError("Visual Crossing saatlik verisi işlenemedi.");
                     }
                 },
-                error -> callback.onError("Visual Crossing bağlantı hatası.")
+                error -> callback.onError(NetworkErrorHandler.formatVolleyError(error))
         );
         request.setRetryPolicy(new DefaultRetryPolicy(15000, 1, 1.0f));
         requestQueue.add(request);
+    }
+
+    // Legacy method
+    public void getCurrentWeather(String cityName, String model, boolean isAIactive, final WeatherCallbackLegacy callback) {
+        getCurrentWeather(cityName, model, new WeatherCallback<WeatherData>() {
+            @Override
+            public void onSuccess(WeatherData data) {
+                WeatherJsonAPI.WeatherData legacy = new WeatherJsonAPI.WeatherData();
+                legacy.cityName = data.cityName;
+                legacy.temp = data.temp;
+                legacy.feelsLike = data.feelsLike;
+                legacy.humidity = data.humidity;
+                legacy.pressure = data.pressure;
+                legacy.windSpeed = data.windSpeed / 3.6;
+                legacy.windDirection = data.windDirection;
+                legacy.cloudiness = data.cloudiness;
+                legacy.description = data.description;
+                legacy.icon = data.icon;
+                legacy.AIAdvice = data.aiAdvice;
+                callback.onSuccess(legacy);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void getDailyForecast(String cityName, String model, final ForecastCallbackLegacy callback) {
+        getDailyForecast(cityName, model, new WeatherCallback<List<ForecastItem>>() {
+            @Override
+            public void onSuccess(List<ForecastItem> data) {
+                callback.onSuccess(data);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void getHourlyForecast(String cityName, String model, final ForecastCallbackLegacy callback) {
+        getHourlyForecast(cityName, model, new WeatherCallback<List<ForecastItem>>() {
+            @Override
+            public void onSuccess(List<ForecastItem> data) {
+                callback.onSuccess(data);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    private String cleanCityName(String cityName) {
+        if (cityName == null) return "";
+        String clean = cityName.trim();
+        if (clean.contains("/")) clean = clean.split("/")[0].trim();
+        if (clean.contains(",")) clean = clean.split(",")[0].trim();
+        return clean;
     }
 }

@@ -5,49 +5,80 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import com.example.weatherapp.Helpers.WeatherReceiver.OpenMeteoService;
-import com.example.weatherapp.Helpers.WeatherReceiver.VisualCrossingService;
-import com.example.weatherapp.Helpers.WeatherReceiver.WeatherAPIService;
-import com.example.weatherapp.Helpers.WeatherReceiver.WeatherJsonAPI;
+import com.example.weatherapp.Helpers.WeatherReceiver.WeatherCallback;
+import com.example.weatherapp.Helpers.WeatherReceiver.WeatherData;
+import com.example.weatherapp.Helpers.WeatherReceiver.WeatherRepository;
 import com.example.weatherapp.data.Databases.AppDatabase;
 import com.example.weatherapp.data.Entities.WeatherEntity;
 import com.example.weatherapp.generalFeatures.PreferencesManager;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class FavoriteCitiesUpdater {
     private static final String TAG = "FavoriteCitiesUpdater";
+    private static final int MAX_PARALLEL_THREADS = 4;
+    private static final int PER_CITY_TIMEOUT_SECONDS = 10;
+    private static final int TOTAL_TIMEOUT_SECONDS = 25;
 
     public static void updateFavorites(Context context, @Nullable Runnable onComplete) {
-        if (context == null) return;
+        if (context == null) {
+            if (onComplete != null) onComplete.run();
+            return;
+        }
         Context appContext = context.getApplicationContext();
 
-        Executors.newSingleThreadExecutor().execute(() -> {
+        ExecutorService supervisorExecutor = Executors.newSingleThreadExecutor();
+        supervisorExecutor.execute(() -> {
+            ExecutorService workerPool = null;
             try {
                 AppDatabase db = AppDatabase.getInstance(appContext);
                 List<WeatherEntity> favorites = db.weatherDao().getAllFavoritesSync();
                 if (favorites == null || favorites.isEmpty()) {
-                    if (onComplete != null) onComplete.run();
+                    Log.d(TAG, "Favori şehir listesi boş.");
                     return;
                 }
 
                 PreferencesManager prefs = PreferencesManager.getInstance(appContext);
                 String provider = prefs.getSelectedProvider();
                 String vcModel = prefs.getVisualCrossingModel();
+                WeatherRepository repository = new WeatherRepository(appContext);
+
+                int poolSize = Math.min(MAX_PARALLEL_THREADS, Math.max(1, favorites.size()));
+                workerPool = Executors.newFixedThreadPool(poolSize);
 
                 CountDownLatch latch = new CountDownLatch(favorites.size());
 
-                for (WeatherEntity city : favorites) {
-                    fetchCityWeather(appContext, db, city.cityName, provider, vcModel, latch);
+                for (WeatherEntity cityEntity : favorites) {
+                    final String cityName = cityEntity.cityName;
+                    workerPool.submit(() -> {
+                        try {
+                            updateSingleCity(repository, db, cityName, provider, vcModel);
+                        } catch (Exception e) {
+                            Log.e(TAG, cityName + " güncelleme hatası: " + e.getMessage());
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
                 }
 
-                latch.await(35, TimeUnit.SECONDS);
+                boolean finishedInTime = latch.await(TOTAL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                if (!finishedInTime) {
+                    Log.w(TAG, "Favori şehirler zaman aşımına uğradı (" + TOTAL_TIMEOUT_SECONDS + "s). Kalan görevler sonlandırılıyor.");
+                } else {
+                    Log.d(TAG, "Tüm favori şehirler başarıyla güncellendi.");
+                }
+
             } catch (Exception e) {
-                Log.e(TAG, "Favori güncelleme hatası: " + e.getMessage());
+                Log.e(TAG, "updateFavorites genel hata: " + e.getMessage());
             } finally {
+                if (workerPool != null) {
+                    workerPool.shutdownNow();
+                }
+                supervisorExecutor.shutdown();
                 if (onComplete != null) {
                     onComplete.run();
                 }
@@ -55,109 +86,38 @@ public class FavoriteCitiesUpdater {
         });
     }
 
-    private static void fetchCityWeather(Context context, AppDatabase db, String cityName, String provider, String vcModel, CountDownLatch latch) {
-        if (provider == null) provider = "OPEN_METEO";
+    private static void updateSingleCity(WeatherRepository repository, AppDatabase db,
+                                         String cityName, String provider, String model) {
+        if (cityName == null || cityName.trim().isEmpty()) return;
 
-        final String cleanCity;
-        if (cityName != null && cityName.contains("/")) {
-            cleanCity = cityName.split("/")[0].trim();
-        } else {
-            cleanCity = cityName != null ? cityName.trim() : "";
-        }
-
-        switch (provider) {
-            case "OWM": {
-                WeatherJsonAPI api = new WeatherJsonAPI(context);
-                api.getWeatherfromOpenWEatherMAp(cleanCity, false, new WeatherJsonAPI.WeatherCallback() {
-                    @Override
-                    public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                        saveData(db, cityName, data.temp, data.description, data.icon, latch);
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        latch.countDown();
-                    }
-                });
-                break;
+        final CountDownLatch cityLatch = new CountDownLatch(1);
+        repository.getCurrentWeather(provider, cityName, model, new WeatherCallback<WeatherData>() {
+            @Override
+            public void onSuccess(WeatherData data) {
+                try {
+                    db.weatherDao().updateFavoriteWeather(
+                            cityName,
+                            data.temp,
+                            data.description,
+                            data.icon
+                    );
+                    Log.d(TAG, "Favori güncellendi: " + cityName + " -> " + data.temp + "°C");
+                } catch (Exception e) {
+                    Log.e(TAG, cityName + " veritabanı yazma hatası: " + e.getMessage());
+                } finally {
+                    cityLatch.countDown();
+                }
             }
 
-            case "WEATHER_API": {
-                WeatherAPIService api = new WeatherAPIService(context);
-                api.getCurrentWeather(cleanCity, false, new WeatherAPIService.WeatherCallback() {
-                    @Override
-                    public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                        saveData(db, cityName, data.temp, data.description, data.icon, latch);
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        latch.countDown();
-                    }
-                });
-                break;
-            }
-
-            case "VISUAL_CROSSING": {
-                VisualCrossingService api = new VisualCrossingService(context);
-                api.getCurrentWeather(cleanCity, vcModel, false, new VisualCrossingService.WeatherCallback() {
-                    @Override
-                    public void onSuccess(WeatherJsonAPI.WeatherData data) {
-                        saveData(db, cityName, data.temp, data.description, data.icon, latch);
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        latch.countDown();
-                    }
-                });
-                break;
-            }
-
-            case "OPEN_METEO":
-            default: {
-                OpenMeteoService api = new OpenMeteoService(context);
-                api.searchGlobalLocation(cleanCity, new OpenMeteoService.GeoSearchCallback() {
-                    @Override
-                    public void onSuccess(List<OpenMeteoService.GeoSearchResult> results) {
-                        if (results != null && !results.isEmpty()) {
-                            OpenMeteoService.GeoSearchResult loc = results.get(0);
-                            api.getWeatherFromOpenMeteo(loc.latitude, loc.longitude, cleanCity, false, new OpenMeteoService.WeatherCallback() {
-                                @Override
-                                public void onSuccess(OpenMeteoService.WeatherData data) {
-                                    saveData(db, cityName, data.temp, data.description, data.icon, latch);
-                                }
-
-                                @Override
-                                public void onError(String error) {
-                                    latch.countDown();
-                                }
-                            });
-                        } else {
-                            latch.countDown();
-                        }
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        latch.countDown();
-                    }
-                });
-                break;
-            }
-        }
-    }
-
-    private static void saveData(AppDatabase db, String cityName, double temp, String desc, String icon, CountDownLatch latch) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                db.weatherDao().updateFavoriteWeather(cityName, temp, desc, icon);
-                Log.d(TAG, "Favori güncellendi: " + cityName + " -> " + temp + "°C");
-            } catch (Exception e) {
-                Log.e(TAG, "DB update error: " + e.getMessage());
-            } finally {
-                latch.countDown();
+            @Override
+            public void onError(String error) {
+                Log.w(TAG, cityName + " güncellenemedi: " + error);
+                cityLatch.countDown();
             }
         });
+
+        try {
+            cityLatch.await(PER_CITY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException ignored) {}
     }
 }
