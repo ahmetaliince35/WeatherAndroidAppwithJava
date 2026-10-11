@@ -82,7 +82,7 @@ WeatherAndroidAppwithJava/
 
 1. Projeyi klonlayın:
 ```bash
-git clone https://github.com/kullaniciadi/WeatherAndroidAppwithJava.git
+git clone https://github.com/ahmetaliince35/WeatherAndroidAppwithJava.git
 ```
 
 2. Proje kök dizininde `local.properties` dosyasını oluşturun veya mevcut dosyaya ilgili API anahtarlarınızı ekleyin:
